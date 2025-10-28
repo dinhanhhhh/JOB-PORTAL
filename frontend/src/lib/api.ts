@@ -12,12 +12,15 @@ let pendingQueue: Array<() => void> = [];
 export function getApiBase(): string {
   const base =
     process.env.NEXT_PUBLIC_API_URL || "https://backend-ygiu.onrender.com";
-  console.log("API Base URL:", base);
+  console.log("getApiBase() returning:", base);
   return base;
 }
 
+// Ensure exactly one "/api" suffix regardless of env value
 export function getApiBaseApi(): string {
-  const base = getApiBase().replace(/\/+$/, "");
+  const base = (
+    process.env.NEXT_PUBLIC_API_URL || "https://backend-ygiu.onrender.com"
+  ).replace(/\/+$/, "");
   return base.endsWith("/api") ? base : `${base}/api`;
 }
 
@@ -64,87 +67,99 @@ function extractErrorMessage(err: unknown): string {
   return "Unexpected error";
 }
 
-function createApiInstance(): AxiosInstance {
+function createApi(): AxiosInstance {
   const instance = axios.create({
     baseURL: getApiBaseApi(),
     withCredentials: true,
-    timeout: 30000,
+    headers: { "Content-Type": "application/json" },
   });
 
-  // Request interceptor
   instance.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-      console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`);
-      return config;
-    },
-    (error) => Promise.reject(error)
+    (config: InternalAxiosRequestConfig) => config
   );
 
-  // Response interceptor
   instance.interceptors.response.use(
-    (response) => response,
+    (res) => res,
     async (error: AxiosError) => {
-      const originalRequest = error.config as InternalAxiosRequestConfig & {
-        _retry?: boolean;
-      };
+      const original = error.config as
+        | (InternalAxiosRequestConfig & { _retry?: boolean })
+        | undefined;
+      const status = error.response?.status ?? 0;
 
-      // Token expired - try refresh
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      // Log lỗi rõ ràng (chỉ trong development)
+      if (process.env.NODE_ENV === "development") {
+        console.error("🚨 API Error:", {
+          url: error.config?.url,
+          method: (error.config?.method || "get").toUpperCase(),
+          status,
+          data: error.response?.data,
+        });
+      }
+
+      if (status === 401 && original && !original._retry) {
         if (isRefreshing) {
-          return new Promise((resolve) => {
-            pendingQueue.push(() => {
-              resolve(instance(originalRequest));
-            });
-          });
+          await new Promise<void>((resolve) => pendingQueue.push(resolve));
+          return getApi()(original);
         }
-
-        originalRequest._retry = true;
+        original._retry = true;
         isRefreshing = true;
-
         try {
-          await instance.post("/auth/refresh");
-          isRefreshing = false;
-          pendingQueue.forEach((cb) => cb());
+          await axios.post(
+            `${getApiBaseApi()}/auth/refresh`,
+            {},
+            { withCredentials: true }
+          );
+          pendingQueue.forEach((fn) => fn());
           pendingQueue = [];
-          return instance(originalRequest);
-        } catch (refreshError) {
+          return getApi()(original);
+        } finally {
           isRefreshing = false;
-          pendingQueue = [];
-          window.location.href = "/login";
-          return Promise.reject(refreshError);
         }
       }
 
-      const message = extractErrorMessage(error);
-      console.error("API Error:", message);
-      return Promise.reject(new Error(message));
+      const msg = extractErrorMessage(error);
+      const wrapped = new Error(`[${status}] ${msg}`);
+      // @ts-expect-error attach extra for debug
+      wrapped.__raw = error;
+      throw wrapped;
     }
   );
 
   return instance;
 }
 
-export function apiGet<T>(url: string) {
-  if (!apiInstance) apiInstance = createApiInstance();
-  return apiInstance.get<T>(url).then((res) => res.data);
+export default function getApi(): AxiosInstance {
+  if (!apiInstance) apiInstance = createApi();
+  return apiInstance;
 }
 
-export function apiPost<T, D = unknown>(url: string, data?: D) {
-  if (!apiInstance) apiInstance = createApiInstance();
-  return apiInstance.post<T>(url, data).then((res) => res.data);
+export async function apiGet<T>(url: string): Promise<T> {
+  const res = await getApi().get<T>(url);
+  return res.data;
 }
-
-export function apiPut<T, D = unknown>(url: string, data?: D) {
-  if (!apiInstance) apiInstance = createApiInstance();
-  return apiInstance.put<T>(url, data).then((res) => res.data);
+export async function apiPost<T, B extends object>(
+  url: string,
+  body: B
+): Promise<T> {
+  const res = await getApi().post<T>(url, body);
+  return res.data;
 }
-
-export function apiPatch<T, D = unknown>(url: string, data?: D) {
-  if (!apiInstance) apiInstance = createApiInstance();
-  return apiInstance.patch<T>(url, data).then((res) => res.data);
+export async function apiPut<T, B extends object>(
+  url: string,
+  body: B
+): Promise<T> {
+  const res = await getApi().put<T>(url, body);
+  return res.data;
 }
-
-export function apiDelete<T>(url: string) {
-  if (!apiInstance) apiInstance = createApiInstance();
-  return apiInstance.delete<T>(url).then((res) => res.data);
+// frontend/src/lib/api.ts (bổ sung 2 hàm)
+export async function apiPatch<T, B extends object>(
+  url: string,
+  body: B
+): Promise<T> {
+  const res = await getApi().patch<T>(url, body);
+  return res.data;
+}
+export async function apiDelete<T>(url: string): Promise<T> {
+  const res = await getApi().delete<T>(url);
+  return res.data;
 }
