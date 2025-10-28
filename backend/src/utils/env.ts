@@ -4,6 +4,7 @@ import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "production"]).default("development"),
   PORT: z.string().default("4000"),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),

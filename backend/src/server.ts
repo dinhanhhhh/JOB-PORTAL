@@ -21,7 +21,10 @@ export const app = express();
 // Core middlewares
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: [
+      "https://job-portal-rosy-three.vercel.app", // ✅ FE production
+      "http://localhost:3000", // ✅ FE development
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -37,13 +40,13 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: env.COOKIE_SECURE === "true",
+      secure: process.env.NODE_ENV === "production", // ✅ Tự động
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   })
 );
-
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
