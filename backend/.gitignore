@@ -1,0 +1,15 @@
+# === BACKEND ONLY ===
+node_modules/
+dist/
+coverage/
+*.log
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Uploads (nếu cần ignore)
+uploads/
+# Nếu muốn commit cấu trúc trống:
+# !uploads/.gitkeep

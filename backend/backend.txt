@@ -1,0 +1,3739 @@
+CÂY THƯ MỤC DỰ ÁN:
+
+backend
+├── .env.example
+├── Job Portal API - Complete.json
+├── package.json
+├── README.md
+├── src
+│   ├── config
+│   │   └── db.ts
+│   ├── controllers
+│   │   ├── admin.controller.ts
+│   │   ├── application.controller.ts
+│   │   ├── auth.controller.ts
+│   │   ├── company.controller.ts
+│   │   ├── job.controller.ts
+│   │   └── profile.controller.ts
+│   ├── index.ts
+│   ├── middlewares
+│   │   ├── auth.ts
+│   │   ├── errorHandler.ts
+│   │   ├── rateLimit.ts
+│   │   └── upload.ts
+│   ├── models
+│   │   ├── Application.ts
+│   │   ├── Company.ts
+│   │   ├── Job.ts
+│   │   ├── SeekerProfile.ts
+│   │   └── User.ts
+│   ├── routes
+│   │   ├── admin.routes.ts
+│   │   ├── ai.routes.ts
+│   │   ├── application.routes.ts
+│   │   ├── auth.routes.ts
+│   │   ├── company.routes.ts
+│   │   ├── job.routes.ts
+│   │   └── profile.routes.ts
+│   ├── seed.ts
+│   ├── server.ts
+│   ├── services
+│   │   ├── cloudinary.service.ts
+│   │   └── gemini.service.ts
+│   ├── types
+│   │   └── common.ts
+│   └── utils
+│       ├── env.ts
+│       ├── jwt.ts
+│       └── pagination.ts
+└── tsconfig.json
+
+
+================================================================================
+
+// START OF FILE: backend/.env.example
+
+# Server
+PORT=4000
+NODE_ENV=development
+
+# Frontend
+FRONTEND_URL=http://localhost:3000
+
+# Database
+MONGODB_URI=mongodb://localhost:27017/job-portal
+# Production example:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/job-portal
+
+# JWT
+JWT_ACCESS_SECRET=your-super-secret-access-key-min-32-characters-long-change-in-production
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-characters-long-change-in-production
+JWT_REFRESH_EXPIRES=7d
+
+# Cookie
+COOKIE_SECURE=false  # true in production with HTTPS
+
+# Cloudinary (Get from cloudinary.com)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Google Gemini AI (Get from ai.google.dev)
+GEMINI_API_KEY=your-gemini-api-key
+
+# Upload limits
+MAX_FILE_SIZE=5242880  # 5MB in bytes
+AI_RATE_LIMIT_PER_MIN=5
+
+
+// END OF FILE: backend/.env.example
+
+// START OF FILE: backend/Job Portal API - Complete.json
+
+{
+  "info": {
+    "name": "Job Portal API - Complete",
+    "description": "Full test suite cho Job Portal Backend (45+ endpoints)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "job_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "application_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register (Seeker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has user object', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.user).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seeker@example.com\",\n  \"password\": \"seeker123\",\n  \"name\": \"John Seeker\",\n  \"role\": \"seeker\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Register (Employer)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"employer@example.com\",\n  \"password\": \"employer123\",\n  \"name\": \"Jane Employer\",\n  \"role\": \"employer\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login (Employer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cookies set', () => {",
+                  "  pm.expect(pm.cookies.get('access_token')).to.not.be.undefined;",
+                  "  pm.expect(pm.cookies.get('refresh_token')).to.not.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@example.com\",\n  \"password\": \"hr12345\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login (Seeker)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dev@example.com\",\n  \"password\": \"dev12345\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Company (Employer)",
+      "item": [
+        {
+          "name": "Get My Company",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/company/me"
+          }
+        },
+        {
+          "name": "Create/Update Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has company', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.company).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TechCorp Solutions\",\n  \"description\": \"Leading tech company\",\n  \"website\": \"https://techcorp.example.com\",\n  \"location\": \"Ho Chi Minh City\",\n  \"industry\": \"Technology\",\n  \"size\": \"51-200\"\n}"
+            },
+            "url": "{{base_url}}/api/company/me"
+          }
+        },
+        {
+          "name": "Upload Company Logo",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/path/to/logo.png"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/company/logo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💼 Jobs",
+      "item": [
+        {
+          "name": "List Jobs (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has pagination', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('pagination');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/jobs?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/jobs?q=react&skills=react,typescript&isRemote=true&level=mid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                { "key": "q", "value": "react" },
+                { "key": "skills", "value": "react,typescript" },
+                { "key": "isRemote", "value": "true" },
+                { "key": "level", "value": "mid" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Job by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.job && json.job._id) {",
+                  "  pm.collectionVariables.set('job_id', json.job._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/jobs/{{job_id}}"
+          }
+        },
+        {
+          "name": "Create Job (Employer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.job && json.job._id) {",
+                  "  pm.collectionVariables.set('job_id', json.job._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior React Developer\",\n  \"description\": \"We are looking for an experienced React developer...\",\n  \"requirements\": [\"5+ years React\", \"TypeScript expert\"],\n  \"skills\": [\"React\", \"TypeScript\", \"Node.js\"],\n  \"location\": \"Ho Chi Minh City\",\n  \"isRemote\": false,\n  \"salaryMin\": 2000,\n  \"salaryMax\": 3500,\n  \"level\": \"senior\",\n  \"type\": \"full-time\"\n}"
+            },
+            "url": "{{base_url}}/api/jobs"
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated job description\",\n  \"salaryMax\": 4000\n}"
+            },
+            "url": "{{base_url}}/api/jobs/{{job_id}}"
+          }
+        },
+        {
+          "name": "Toggle Job Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/jobs/{{job_id}}/toggle-status"
+          }
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/jobs/{{job_id}}"
+          }
+        },
+        {
+          "name": "Get My Jobs (Employer)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/jobs/employer/my-jobs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Profile (Seeker)",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/profile/seeker"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+84 123 456 789\",\n  \"location\": \"Ho Chi Minh City\",\n  \"bio\": \"Passionate developer with 3 years experience\",\n  \"skills\": [\"React\", \"Node.js\", \"MongoDB\"],\n  \"experience\": \"3 years\",\n  \"education\": \"Bachelor of CS\",\n  \"github\": \"https://github.com/johndoe\",\n  \"portfolio\": \"https://johndoe.dev\",\n  \"linkedin\": \"https://linkedin.com/in/johndoe\"\n}"
+            },
+            "url": "{{base_url}}/api/profile/seeker"
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/path/to/avatar.jpg"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/profile/seeker/avatar"
+          }
+        },
+        {
+          "name": "Upload Resume",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "resume",
+                  "type": "file",
+                  "src": "/path/to/resume.pdf"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/profile/seeker/resume"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 Applications",
+      "item": [
+        {
+          "name": "Apply to Job (Seeker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.application && json.application._id) {",
+                  "  pm.collectionVariables.set('application_id', json.application._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "resume",
+                  "type": "file",
+                  "src": "/path/to/resume.pdf"
+                },
+                {
+                  "key": "coverLetter",
+                  "value": "I am interested in this position...",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/applications/jobs/{{job_id}}/apply"
+          }
+        },
+        {
+          "name": "Get My Applications (Seeker)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/applications/my-applications"
+          }
+        },
+        {
+          "name": "Get Job Applications (Employer)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/applications/jobs/{{job_id}}/applications"
+          }
+        },
+        {
+          "name": "Update Application Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"viewed\"\n}"
+            },
+            "url": "{{base_url}}/api/applications/{{application_id}}/status"
+          }
+        },
+        {
+          "name": "Get Application Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/applications/{{application_id}}"
+          }
+        },
+        {
+          "name": "Generate Cover Letter (AI)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{job_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/applications/generate-cover-letter"
+          }
+        },
+        {
+          "name": "Summarize Candidate (AI)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/applications/{{application_id}}/summarize"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Admin",
+      "item": [
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/admin/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    }
+  ]
+}
+
+
+// END OF FILE: backend/Job Portal API - Complete.json
+
+// START OF FILE: backend/package.json
+
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "seed": "ts-node src/seed.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^1.27.0",
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.8.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.20.0",
+    "mongoose": "^8.19.2",
+    "multer": "^2.0.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/ms": "^2.1.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.9.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
+
+
+// END OF FILE: backend/package.json
+
+// START OF FILE: backend/README.md
+
+# 🚀 Job Portal Backend API
+
+> Backend API cho ứng dụng tìm việc làm với Node.js + Express + MongoDB + TypeScript
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.18-lightgrey)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-brightgreen)](https://www.mongodb.com/)
+
+---
+
+## 📋 Mục Lục
+
+- [Tính năng](#-tính-năng)
+- [Công nghệ](#-công-nghệ)
+- [Cài đặt](#-cài-đặt)
+- [Cấu hình](#-cấu-hình)
+- [Chạy ứng dụng](#-chạy-ứng-dụng)
+- [Seed dữ liệu](#-seed-dữ-liệu)
+- [API Endpoints](#-api-endpoints)
+- [Cấu trúc thư mục](#-cấu-trúc-thư-mục)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Tài khoản demo](#-tài-khoản-demo)
+
+---
+
+## ✨ Tính Năng
+
+### **🔐 Authentication & Authorization**
+- ✅ JWT Authentication với HTTP-only cookies
+- ✅ Access Token (15 phút) + Refresh Token (7 ngày)
+- ✅ Auto-refresh token trong middleware
+- ✅ RBAC với 3 roles: **Seeker**, **Employer**, **Admin**
+
+### **💼 Quản Lý Công Việc**
+- ✅ CRUD operations cho jobs
+- ✅ Filter & search: tên, địa điểm, remote, skills, level, mức lương
+- ✅ Pagination
+- ✅ Toggle trạng thái active/inactive
+
+### **📄 Quản Lý Hồ Sơ**
+- ✅ Hồ sơ Seeker (skills, experience, education, portfolio)
+- ✅ Upload avatar và CV (Cloudinary)
+- ✅ Hồ sơ công ty (Employer)
+- ✅ Upload logo công ty
+
+### **📨 Ứng Tuyển**
+- ✅ Seeker apply job với CV
+- ✅ Employer xem danh sách ứng viên
+- ✅ Cập nhật trạng thái: submitted → viewed → accepted/rejected
+- ✅ Theo dõi thời gian xem và phản hồi
+
+### **🤖 AI Features (Google Gemini)**
+- ✅ Tạo cover letter tự động
+- ✅ Tạo job description tự động
+- ✅ Tóm tắt hồ sơ ứng viên
+
+### **📊 Admin Dashboard**
+- ✅ Thống kê users, jobs, applications
+- ✅ Thống kê theo role và status
+- ✅ Recent activities
+
+---
+
+## 🛠️ Công Nghệ
+
+### **Core**
+- **Node.js** (v18+) - JavaScript runtime
+- **Express** (v4.18) - Web framework
+- **TypeScript** (v5.3) - Type safety
+- **MongoDB** (v7.0) - Database
+- **Mongoose** (v8.0) - ODM
+
+### **Security & Auth**
+- **jsonwebtoken** - JWT authentication
+- **bcryptjs** - Password hashing
+- **cookie-parser** - Cookie handling
+- **cors** - Cross-Origin Resource Sharing
+
+### **Validation & Upload**
+- **zod** - Schema validation
+- **multer** - File upload middleware
+- **cloudinary** - Cloud storage
+
+### **AI**
+- **@google/generative-ai** - Google Gemini API
+
+### **Dev Tools**
+- **ts-node-dev** - Development with hot reload
+- **dotenv** - Environment variables
+
+---
+
+## 📦 Cài Đặt
+
+### **Yêu cầu**
+- Node.js >= 18.0.0
+- npm >= 9.0.0
+- MongoDB (local hoặc Atlas)
+- Cloudinary account
+- Google Gemini API key
+
+### **Clone & Install**
+
+
+
+// END OF FILE: backend/README.md
+
+// START OF FILE: backend/src/config/db.ts
+
+import mongoose from "mongoose";
+import { env } from "../utils/env";
+
+export async function connectDB(): Promise<void> {
+  try {
+    await mongoose.connect(env.MONGODB_URI);
+    console.log("✅ MongoDB connected");
+  } catch (err) {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  }
+}
+
+
+// END OF FILE: backend/src/config/db.ts
+
+// START OF FILE: backend/src/controllers/admin.controller.ts
+
+import type { Request, Response } from "express";
+import { z } from "zod";
+import User from "../models/User";
+import Job from "../models/Job";
+import Application from "../models/Application";
+
+/**
+ * GET /api/admin/stats
+ * Thống kê chi tiết hệ thống
+ */
+export async function getStats(_req: Request, res: Response): Promise<void> {
+  try {
+    const [
+      totalUsers,
+      totalJobs,
+      totalApplications,
+      activeJobs,
+      usersByRole,
+      applicationsByStatus,
+      recentJobs,
+      recentApplications,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Job.countDocuments(),
+      Application.countDocuments(),
+      Job.countDocuments({ isActive: true }),
+
+      // ✅ Users by role
+      User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]).then(
+        (results) =>
+          results.reduce((acc, { _id, count }) => ({ ...acc, [_id]: count }), {
+            seeker: 0,
+            employer: 0,
+            admin: 0,
+          })
+      ),
+
+      // ✅ Applications by status
+      Application.aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]).then((results) =>
+        results.reduce((acc, { _id, count }) => ({ ...acc, [_id]: count }), {
+          submitted: 0,
+          viewed: 0,
+          accepted: 0,
+          rejected: 0,
+        })
+      ),
+
+      // ✅ Recent jobs (last 5)
+      Job.find()
+        .populate("company")
+        .populate("employer", "name email")
+        .sort({ createdAt: -1 })
+        .limit(5),
+
+      // ✅ Recent applications (last 5)
+      Application.find()
+        .populate("job", "title")
+        .populate("seeker", "name email")
+        .sort({ createdAt: -1 })
+        .limit(5),
+    ]);
+
+    res.json({
+      stats: {
+        totalUsers,
+        totalJobs,
+        totalApplications,
+        activeJobs,
+        usersByRole,
+        applicationsByStatus,
+      },
+      recentActivities: {
+        recentJobs,
+        recentApplications,
+      },
+    });
+  } catch (error) {
+    console.error("Get stats error:", error);
+    res.status(500).json({ message: "Failed to fetch statistics" });
+  }
+}
+
+/**
+ * GET /api/admin/users
+ * Danh sách users với filter
+ */
+export async function getUsers(req: Request, res: Response): Promise<void> {
+  try {
+    const { page = "1", limit = "10", role, search } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter: Record<string, unknown> = {};
+
+    if (role && ["seeker", "employer", "admin"].includes(role as string)) {
+      filter.role = role;
+    }
+
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      User.countDocuments(filter),
+    ]);
+
+    res.json({
+      data: users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+}
+
+/**
+ * PATCH /api/admin/users/:userId
+ * Cập nhật user (role, isActive)
+ */
+export async function updateUser(req: Request, res: Response): Promise<void> {
+  try {
+    const adminId = req.user?.id;
+    const { userId } = req.params;
+
+    const validated = z
+      .object({
+        isActive: z.boolean().optional(),
+        role: z.enum(["seeker", "employer", "admin"]).optional(),
+      })
+      .parse(req.body);
+
+    // ✅ Prevent self-modification
+    if (adminId === userId) {
+      res.status(400).json({ message: "Cannot modify your own account" });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(userId, validated, {
+      new: true,
+    }).select("-password");
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.json({ message: "User updated successfully", user });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Validation error", errors: error.flatten() });
+      return;
+    }
+    res.status(500).json({ message: "Failed to update user" });
+  }
+}
+
+/**
+ * GET /api/admin/jobs
+ * Tất cả jobs (admin view)
+ */
+export async function getAllJobs(req: Request, res: Response): Promise<void> {
+  try {
+    const { page = "1", limit = "10" } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [jobs, total] = await Promise.all([
+      Job.find()
+        .populate("company")
+        .populate("employer", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Job.countDocuments(),
+    ]);
+
+    res.json({
+      data: jobs,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch jobs" });
+  }
+}
+
+/**
+ * DELETE /api/admin/jobs/:jobId
+ * Xóa job (admin only)
+ */
+export async function deleteJobByAdmin(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { jobId } = req.params;
+
+    const job = await Job.findByIdAndDelete(jobId);
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+
+    // ✅ Xóa applications liên quan
+    await Application.deleteMany({ job: jobId });
+
+    res.json({
+      message: "Job and related applications deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete job" });
+  }
+}
+
+
+// END OF FILE: backend/src/controllers/admin.controller.ts
+
+// START OF FILE: backend/src/controllers/application.controller.ts
+
+import type { Request, Response } from "express";
+import { z } from "zod";
+import Application from "../models/Application";
+import Job from "../models/Job";
+import SeekerProfile from "../models/SeekerProfile";
+import { uploadToCloudinary } from "../services/cloudinary.service";
+import {
+  generateCoverLetter,
+  summarizeCandidate,
+} from "../services/gemini.service";
+import User from "../models/User";
+
+// Validation schemas
+const applyJobSchema = z.object({
+  coverLetter: z
+    .string()
+    .max(1000, "Cover letter cannot exceed 1000 characters")
+    .optional(),
+});
+
+const updateStatusSchema = z.object({
+  status: z.enum(["submitted", "viewed", "accepted", "rejected"]),
+});
+
+/**
+ * POST /api/applications/:jobId/apply
+ * Apply to a job (Seeker only)
+ */
+export async function applyToJob(req: Request, res: Response): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+    const { jobId } = req.params;
+
+    if (!seekerId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const validated = applyJobSchema.parse(req.body);
+
+    // Check if job exists and is open
+    const job = await Job.findById(jobId);
+    if (!job) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+
+    if (!job.isActive) {
+      res
+        .status(400)
+        .json({ message: "This job is no longer accepting applications" });
+      return;
+    }
+
+    // Get seeker's profile
+    const profile = await SeekerProfile.findOne({ user: seekerId });
+    if (!profile) {
+      res.status(400).json({ message: "Please complete your profile first" });
+      return;
+    }
+
+    // Check if already applied
+    const existingApp = await Application.findOne({
+      job: jobId,
+      seeker: seekerId,
+    });
+
+    if (existingApp) {
+      res.status(400).json({ message: "You have already applied to this job" });
+      return;
+    }
+
+    // Use resume from profile or upload new one
+    let resumeUrl = profile.resumeUrl;
+
+    if (req.file) {
+      const result = await uploadToCloudinary(
+        req.file.path,
+        "applications",
+        "raw"
+      );
+      resumeUrl = result.secure_url;
+    }
+
+    if (!resumeUrl) {
+      res.status(400).json({
+        message:
+          "Resume is required. Please upload a resume or add one to your profile.",
+      });
+      return;
+    }
+
+    // Create application
+    const application = await Application.create({
+      job: jobId,
+      seeker: seekerId,
+      resumeUrl,
+      coverLetter: validated.coverLetter,
+      status: "submitted",
+    });
+
+    await application.populate([
+      { path: "job", populate: { path: "company" } },
+      { path: "seeker", select: "name email" },
+    ]);
+
+    res.status(201).json({
+      message: "Application submitted successfully",
+      application,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Validation error", errors: error.flatten() });
+      return;
+    }
+    res.status(500).json({ message: "Failed to submit application" });
+  }
+}
+
+/**
+ * GET /api/applications/my-applications
+ * Get seeker's applications
+ */
+export async function getMyApplications(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+
+    const applications = await Application.find({ seeker: seekerId })
+      .populate({
+        path: "job",
+        populate: { path: "company" },
+      })
+      .sort({ createdAt: -1 });
+
+    res.json({ applications });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch applications" });
+  }
+}
+
+/**
+ * GET /api/applications/job/:jobId
+ * Get all applications for a job (Employer only)
+ */
+export async function getJobApplications(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+    const { jobId } = req.params;
+
+    // Verify job belongs to employer
+    const job = await Job.findOne({
+      _id: jobId,
+      employer: employerId,
+    });
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found or unauthorized" });
+      return;
+    }
+
+    const applications = await Application.find({ job: jobId })
+      .populate({
+        path: "seeker",
+        select: "name email",
+      })
+      .sort({ createdAt: -1 });
+
+    // Fetch seeker profiles separately
+    const applicationsWithProfiles = await Promise.all(
+      applications.map(async (app) => {
+        const profile = await SeekerProfile.findOne({ user: app.seeker });
+        return {
+          ...app.toObject(),
+          seekerProfile: profile,
+        };
+      })
+    );
+
+    res.json({ applications: applicationsWithProfiles });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch applications" });
+  }
+}
+
+/**
+ * PATCH /api/applications/:applicationId/status
+ * Update application status (Employer only)
+ */
+export async function updateApplicationStatus(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+    const { applicationId } = req.params;
+
+    const validated = updateStatusSchema.parse(req.body);
+
+    const application = await Application.findById(applicationId).populate(
+      "job"
+    );
+
+    if (!application) {
+      res.status(404).json({ message: "Application not found" });
+      return;
+    }
+
+    // Verify job belongs to employer
+    const job = await Job.findOne({
+      _id: application.job,
+      employer: employerId,
+    });
+
+    if (!job) {
+      res
+        .status(403)
+        .json({ message: "Unauthorized to update this application" });
+      return;
+    }
+
+    // Update status
+    application.status = validated.status;
+
+    if (validated.status === "viewed" && !application.viewedAt) {
+      application.viewedAt = new Date();
+    }
+
+    if (
+      ["accepted", "rejected"].includes(validated.status) &&
+      !application.respondedAt
+    ) {
+      application.respondedAt = new Date();
+    }
+
+    await application.save();
+
+    res.json({
+      message: "Application status updated successfully",
+      application,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: "Validation error" });
+      return;
+    }
+    res.status(500).json({ message: "Failed to update application status" });
+  }
+}
+
+/**
+ * GET /api/applications/:applicationId
+ * Get application details
+ */
+export async function getApplicationById(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const { applicationId } = req.params;
+
+    const application = await Application.findById(applicationId)
+      .populate({
+        path: "job",
+        populate: { path: "company" },
+      })
+      .populate({
+        path: "seeker",
+        select: "name email",
+      });
+
+    if (!application) {
+      res.status(404).json({ message: "Application not found" });
+      return;
+    }
+
+    // Authorization check
+    if (userRole === "seeker") {
+      if (application.seeker._id.toString() !== userId) {
+        res.status(403).json({ message: "Unauthorized" });
+        return;
+      }
+    } else if (userRole === "employer") {
+      const job = await Job.findOne({
+        _id: application.job,
+        employer: userId,
+      });
+
+      if (!job) {
+        res.status(403).json({ message: "Unauthorized" });
+        return;
+      }
+    }
+
+    // Get seeker profile
+    const profile = await SeekerProfile.findOne({ user: application.seeker });
+
+    res.json({
+      application,
+      seekerProfile: profile,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch application" });
+  }
+}
+
+/**
+ * POST /api/applications/generate-cover-letter
+ * Generate cover letter using AI (Seeker only)
+ */
+export async function generateCoverLetterAI(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+
+    const { jobId } = z.object({ jobId: z.string() }).parse(req.body);
+
+    // Get job details
+    const job = await Job.findById(jobId);
+    if (!job) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+
+    // Get seeker profile
+    const profile = await SeekerProfile.findOne({ user: seekerId });
+    const user = await User.findById(seekerId);
+
+    if (!profile || !user) {
+      res.status(400).json({ message: "Please complete your profile first" });
+      return;
+    }
+
+    const coverLetter = await generateCoverLetter(job.title, job.description, {
+      name: user.name,
+      skills: profile.skills,
+      experience: profile.experience,
+    });
+
+    res.json({ coverLetter });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: "Validation error" });
+      return;
+    }
+    res.status(500).json({ message: "Failed to generate cover letter" });
+  }
+}
+
+/**
+ * POST /api/applications/:applicationId/summarize
+ * Summarize candidate using AI (Employer only)
+ */
+export async function summarizeCandidateAI(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+    const { applicationId } = req.params;
+
+    const application = await Application.findById(applicationId).populate(
+      "job"
+    );
+
+    if (!application) {
+      res.status(404).json({ message: "Application not found" });
+      return;
+    }
+
+    // Verify authorization
+    const job = await Job.findOne({
+      _id: application.job,
+      employer: employerId,
+    });
+
+    if (!job) {
+      res.status(403).json({ message: "Unauthorized" });
+      return;
+    }
+
+    // Get seeker profile
+    const profile = await SeekerProfile.findOne({ user: application.seeker });
+
+    if (!profile) {
+      res.status(404).json({ message: "Candidate profile not found" });
+      return;
+    }
+
+    // Build resume text from profile
+    const resumeText = `
+Skills: ${profile.skills.join(", ")}
+Experience: ${profile.experience || "N/A"}
+Education: ${profile.education || "N/A"}
+Bio: ${profile.bio || "N/A"}
+    `.trim();
+
+    const jobRequirements = `
+Title: ${job.title}
+Required Skills: ${job.skills.join(", ")}
+Description: ${job.description}
+    `.trim();
+
+    const summary = await summarizeCandidate(resumeText, jobRequirements);
+
+    res.json({ summary });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to summarize candidate" });
+  }
+}
+
+
+// END OF FILE: backend/src/controllers/application.controller.ts
+
+// START OF FILE: backend/src/controllers/auth.controller.ts
+
+import type { Request, Response } from "express";
+import { z } from "zod";
+import User from "../models/User";
+import {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} from "../utils/jwt";
+
+// ===== Zod schemas =====
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().min(2),
+  role: z.enum(["seeker", "employer"]).optional().default("seeker"), // admin seed sau
+});
+type RegisterDto = z.infer<typeof registerSchema>;
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+type LoginDto = z.infer<typeof loginSchema>;
+
+// ===== Helper: set cookies HTTP-only =====
+function setAuthCookies(res: Response, access: string, refresh: string): void {
+  const secure = (process.env.COOKIE_SECURE ?? "false") === "true";
+  // Max-Age chỉ là tuổi cookie; token tự hết hạn theo payload
+  res.cookie("access_token", access, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure,
+    path: "/",
+  });
+  res.cookie("refresh_token", refresh, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure,
+    path: "/",
+  });
+}
+
+// ===== Controllers =====
+export async function register(req: Request, res: Response): Promise<void> {
+  const dto: RegisterDto = registerSchema.parse(req.body);
+
+  const exists = await User.findOne({ email: dto.email });
+  if (exists) {
+    res.status(409).json({ message: "Email already registered" });
+    return;
+  }
+
+  const user = await User.create({
+    ...dto,
+    role: dto.role ?? "seeker",
+  });
+
+  const access = signAccessToken(user.id, user.role);
+  const refresh = signRefreshToken(user.id, user.role);
+  setAuthCookies(res, access, refresh);
+
+  res.status(201).json({
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    },
+  });
+}
+
+export async function login(req: Request, res: Response): Promise<void> {
+  const dto: LoginDto = loginSchema.parse(req.body);
+
+  const user = await User.findOne({ email: dto.email });
+  if (!user) {
+    res.status(401).json({ message: "Invalid credentials" });
+    return;
+  }
+
+  const ok = await user.comparePassword(dto.password);
+  if (!ok) {
+    res.status(401).json({ message: "Invalid credentials" });
+    return;
+  }
+
+  if (!user.isActive) {
+    res.status(403).json({ message: "User disabled" });
+    return;
+  }
+
+  const access = signAccessToken(user.id, user.role);
+  const refresh = signRefreshToken(user.id, user.role);
+  setAuthCookies(res, access, refresh);
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    },
+  });
+}
+
+export async function me(req: Request, res: Response): Promise<void> {
+  const u = req.user!; // đã qua requireAuth
+  const user = await User.findById(u.id).select("-password");
+  res.json({ user });
+}
+
+export async function refresh(req: Request, res: Response): Promise<void> {
+  const rt = req.cookies?.refresh_token as string | undefined;
+  if (!rt) {
+    res.status(401).json({ message: "No refresh token" });
+    return;
+  }
+
+  try {
+    const payload = verifyRefreshToken(rt);
+    const user = await User.findById(payload.sub);
+    if (!user || !user.isActive) {
+      res.status(401).json({ message: "Invalid user" });
+      return;
+    }
+
+    const access = signAccessToken(user.id, user.role);
+    const refreshTok = signRefreshToken(user.id, user.role);
+    setAuthCookies(res, access, refreshTok);
+    res.json({ ok: true });
+  } catch {
+    res.status(401).json({ message: "Invalid refresh token" });
+  }
+}
+
+export async function logout(_req: Request, res: Response): Promise<void> {
+  res.clearCookie("access_token", { path: "/" });
+  res.clearCookie("refresh_token", { path: "/" });
+  res.json({ ok: true });
+}
+
+
+// END OF FILE: backend/src/controllers/auth.controller.ts
+
+// START OF FILE: backend/src/controllers/company.controller.ts
+
+import type { Request, Response } from "express";
+import { z } from "zod";
+import Company from "../models/Company";
+import { MongoServerError } from "mongodb";
+import { uploadToCloudinary } from "../services/cloudinary.service"; // ✅ Thêm import ở đầu file
+
+const companySchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters long"),
+  description: z.string().optional(),
+  website: z.string().url("Invalid URL format").optional(),
+  logoUrl: z.string().url().optional(),
+});
+
+// --- Type guard: phát hiện lỗi duplicate key (11000) của Mongo ---
+function isDupKeyError(err: unknown): err is MongoServerError {
+  return (
+    Boolean(err) &&
+    typeof err === "object" &&
+    "code" in (err as Record<string, unknown>) &&
+    (err as MongoServerError).code === 11000
+  );
+}
+
+/**
+ * GET /api/users/me/company
+ * Yêu cầu: requireAuth + requireRole(['employer'])
+ */
+export async function getMyCompany(req: Request, res: Response): Promise<void> {
+  const employerId = req.user?.id;
+  if (!employerId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const company = await Company.findOne({ owner: employerId });
+  if (!company) {
+    res.status(404).json({ message: "Company profile not found." });
+    return;
+  }
+
+  res.status(200).json({ company });
+}
+
+/**
+ * PUT /api/users/me/company
+ * Upsert hồ sơ công ty của employer hiện tại
+ * Yêu cầu: requireAuth + requireRole(['employer'])
+ */
+export async function upsertMyCompany(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const employerId = req.user?.id;
+  if (!employerId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const parsed = companySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ message: "Invalid input data", errors: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const company = await Company.findOneAndUpdate(
+      { owner: employerId },
+      { ...parsed.data, owner: employerId },
+      { upsert: true, new: true, runValidators: true }
+    );
+    res.status(200).json({ company });
+  } catch (error) {
+    if (isDupKeyError(error)) {
+      res
+        .status(409)
+        .json({ message: "A company with this name already exists." });
+      return;
+    }
+    res.status(500).json({ message: "Something went wrong on the server." });
+  }
+}
+/**
+ * POST /api/company/logo
+ * Upload company logo (Employer only)
+ */
+export async function uploadLogo(req: Request, res: Response): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+
+    if (!employerId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.path, "company-logos", "image");
+
+    // Update company with new logo URL
+    const company = await Company.findOneAndUpdate(
+      { owner: employerId },
+      { logoUrl: result.secure_url },
+      { new: true, upsert: false }
+    );
+
+    if (!company) {
+      res.status(404).json({ 
+        message: "Company not found. Please create company profile first." 
+      });
+      return;
+    }
+
+    res.json({
+      message: "Logo uploaded successfully",
+      logoUrl: result.secure_url,
+      company,
+    });
+  } catch (error) {
+    console.error("Upload logo error:", error);
+    res.status(500).json({ message: "Failed to upload logo" });
+  }
+}
+
+// END OF FILE: backend/src/controllers/company.controller.ts
+
+// START OF FILE: backend/src/controllers/job.controller.ts
+
+import type { Request, Response } from "express";
+import { z } from "zod";
+import Job from "../models/Job";
+import Company from "../models/Company";
+import { generateJobDescription } from "../services/gemini.service";
+
+// ✅ Zod schemas
+export const createJobSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(20, "Description must be at least 20 characters"),
+  requirements: z.array(z.string()).optional().default([]),
+  skills: z.array(z.string()).min(1, "At least one skill is required"),
+  location: z.string().optional(),
+  isRemote: z.boolean().optional().default(false),
+  salaryMin: z.number().min(0).optional(),
+  salaryMax: z.number().min(0).optional(),
+  level: z.enum(["entry", "mid", "senior", "lead", "executive"]),
+  type: z.enum([
+    "full-time",
+    "part-time",
+    "contract",
+    "internship",
+    "freelance",
+  ]),
+});
+
+const updateJobSchema = createJobSchema.partial();
+
+// ✅ Query validation schema
+const querySchema = z.object({
+  page: z.string().optional().default("1"),
+  limit: z.string().optional().default("10"),
+  q: z.string().optional(), // Đổi từ search → q (theo prompt)
+  location: z.string().optional(),
+  isRemote: z.enum(["true", "false"]).optional(), // Đổi từ remote → isRemote
+  level: z.enum(["entry", "mid", "senior", "lead", "executive"]).optional(),
+  skills: z.string().optional(),
+  salaryMin: z.string().optional(),
+  type: z
+    .enum(["full-time", "part-time", "contract", "internship", "freelance"])
+    .optional(),
+});
+
+/**
+ * GET /api/jobs
+ * Get all jobs with filters and pagination
+ */
+export async function getJobs(req: Request, res: Response): Promise<void> {
+  try {
+    // ✅ Validate query params
+    const validated = querySchema.parse(req.query);
+
+    const pageNum = Math.max(1, parseInt(validated.page, 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(validated.limit, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    // ✅ Build filter - isActive thay vì isOpen
+    const filter: Record<string, unknown> = { isActive: true };
+
+    // ✅ Text search (q thay vì search)
+    if (validated.q) {
+      filter.$text = { $search: validated.q };
+    }
+
+    if (validated.location) {
+      filter.location = new RegExp(validated.location, "i");
+    }
+
+    // ✅ isRemote thay vì remote
+    if (validated.isRemote !== undefined) {
+      filter.isRemote = validated.isRemote === "true";
+    }
+
+    if (validated.level) {
+      filter.level = validated.level;
+    }
+
+    if (validated.type) {
+      filter.type = validated.type;
+    }
+
+    // ✅ Skills dùng $all thay vì $in
+    if (validated.skills) {
+      const skillsArray = validated.skills.split(",").map((s) => s.trim());
+      filter.skills = { $all: skillsArray };
+    }
+
+    if (validated.salaryMin) {
+      const min = parseInt(validated.salaryMin, 10);
+      filter.$or = [{ salaryMax: { $gte: min } }, { salaryMin: { $gte: min } }];
+    }
+
+
+    // Execute query
+    const [jobs, total] = await Promise.all([
+      Job.find(filter)
+        .populate("company")
+        .populate("employer", "email name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Job.countDocuments(filter),
+    ]);
+
+    res.json({
+      data: jobs,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        message: "Invalid query parameters",
+        errors: error.flatten(),
+      });
+      return;
+    }
+    res.status(500).json({ message: "Failed to fetch jobs" });
+  }
+}
+
+/**
+ * GET /api/jobs/:id
+ * Get job by ID
+ */
+export async function getJobById(req: Request, res: Response): Promise<void> {
+  try {
+    const job = await Job.findById(req.params.id)
+      .populate("company")
+      .populate("employer", "email name");
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+
+    res.json({ job });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch job" });
+  }
+}
+
+/**
+ * POST /api/jobs
+ * Create new job (Employer only)
+ */
+export async function createJob(req: Request, res: Response): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+    if (!employerId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const validated = createJobSchema.parse(req.body);
+
+    // Get employer's company
+    const company = await Company.findOne({ owner: employerId });
+    if (!company) {
+      res
+        .status(400)
+        .json({ message: "Please create a company profile first" });
+      return;
+    }
+
+    // ✅ isActive thay vì isOpen
+    const job = await Job.create({
+      ...validated,
+      employer: employerId,
+      company: company._id,
+      isActive: true,
+    });
+
+    await job.populate("company");
+
+    res.status(201).json({
+      message: "Job created successfully",
+      job,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Validation error", errors: error.flatten() });
+      return;
+    }
+    res.status(500).json({ message: "Failed to create job" });
+  }
+}
+
+/**
+ * PUT /api/jobs/:id
+ * Update job (Employer only - own jobs)
+ */
+export async function updateJob(req: Request, res: Response): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+    const validated = updateJobSchema.parse(req.body);
+
+    const job = await Job.findOne({
+      _id: req.params.id,
+      employer: employerId,
+    });
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found or unauthorized" });
+      return;
+    }
+
+    Object.assign(job, validated);
+    await job.save();
+    await job.populate("company");
+
+    res.json({
+      message: "Job updated successfully",
+      job,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Validation error", errors: error.flatten() });
+      return;
+    }
+    res.status(500).json({ message: "Failed to update job" });
+  }
+}
+
+/**
+ * DELETE /api/jobs/:id
+ * Delete job (Employer only - own jobs)
+ */
+export async function deleteJob(req: Request, res: Response): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+
+    const job = await Job.findOneAndDelete({
+      _id: req.params.id,
+      employer: employerId,
+    });
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found or unauthorized" });
+      return;
+    }
+
+    res.json({ message: "Job deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete job" });
+  }
+}
+
+/**
+ * PATCH /api/jobs/:id/toggle-status
+ * Toggle job active/inactive status (Employer only)
+ */
+export async function toggleJobStatus(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+
+    const job = await Job.findOne({
+      _id: req.params.id,
+      employer: employerId,
+    });
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found or unauthorized" });
+      return;
+    }
+
+    // ✅ Toggle isActive và set closedAt
+    job.isActive = !job.isActive;
+
+    if (!job.isActive) {
+      job.closedAt = new Date();
+    } else {
+      job.closedAt = undefined;
+    }
+
+    await job.save();
+
+    res.json({
+      message: `Job ${job.isActive ? "opened" : "closed"} successfully`,
+      job,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to toggle job status" });
+  }
+}
+
+/**
+ * GET /api/jobs/employer/my-jobs
+ * Get employer's own jobs
+ */
+export async function getMyJobs(req: Request, res: Response): Promise<void> {
+  try {
+    const employerId = req.user?.id;
+
+    const jobs = await Job.find({ employer: employerId })
+      .populate("company")
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch jobs" });
+  }
+}
+
+/**
+ * POST /api/ai/generate-job-description
+ * Generate job description using AI (Employer only)
+ */
+export async function generateDescription(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const { title, skills, level } = z
+      .object({
+        title: z.string().min(3),
+        skills: z.array(z.string()).min(1),
+        level: z.enum(["entry", "mid", "senior", "lead", "executive"]),
+      })
+      .parse(req.body);
+
+    const description = await generateJobDescription(title, skills, level);
+
+    res.json({ description });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Validation error", errors: error.flatten() });
+      return;
+    }
+    res.status(500).json({ message: "Failed to generate description" });
+  }
+}
+
+
+// END OF FILE: backend/src/controllers/job.controller.ts
+
+// START OF FILE: backend/src/controllers/profile.controller.ts
+
+import type { Request, Response } from "express";
+import { z } from "zod";
+import SeekerProfile from "../models/SeekerProfile";
+import { uploadToCloudinary } from "../services/cloudinary.service";
+
+const updateProfileSchema = z.object({
+  phone: z.string().optional(),
+  location: z.string().optional(),
+  bio: z.string().max(500).optional(),
+  skills: z.array(z.string()).optional(),
+  experience: z.string().optional(),
+  education: z.string().optional(),
+  github: z.string().url().optional().or(z.literal("")),
+  portfolio: z.string().url().optional().or(z.literal("")),
+  linkedin: z.string().url().optional().or(z.literal("")),
+});
+
+export async function getSeekerProfile(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+    let profile = await SeekerProfile.findOne({ user: seekerId });
+
+    if (!profile) {
+      // Tạo profile rỗng nếu chưa có
+      profile = await SeekerProfile.create({ user: seekerId });
+    }
+
+    res.json({ profile });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch profile" });
+  }
+}
+
+export async function updateSeekerProfile(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+    const validated = updateProfileSchema.parse(req.body);
+
+    const profile = await SeekerProfile.findOneAndUpdate(
+      { user: seekerId },
+      validated,
+      { new: true, upsert: true }
+    );
+
+    res.json({ message: "Profile updated", profile });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json({ message: "Validation error", errors: error.flatten() });
+      return;
+    }
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+}
+
+export async function uploadAvatar(req: Request, res: Response): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    const result = await uploadToCloudinary(req.file.path, "avatars", "image");
+
+    const profile = await SeekerProfile.findOneAndUpdate(
+      { user: seekerId },
+      { avatar: result.secure_url },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      message: "Avatar uploaded successfully",
+      avatarUrl: result.secure_url,
+      profile,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to upload avatar" });
+  }
+}
+
+export async function uploadResume(req: Request, res: Response): Promise<void> {
+  try {
+    const seekerId = req.user?.id;
+
+    if (!req.file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    const result = await uploadToCloudinary(req.file.path, "resumes", "raw");
+
+    const profile = await SeekerProfile.findOneAndUpdate(
+      { user: seekerId },
+      { resumeUrl: result.secure_url },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      message: "Resume uploaded successfully",
+      resumeUrl: result.secure_url,
+      profile,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to upload resume" });
+  }
+}
+
+
+// END OF FILE: backend/src/controllers/profile.controller.ts
+
+// START OF FILE: backend/src/index.ts
+
+import { app } from "./server";
+import { env } from "./utils/env";
+
+const port = Number(env.PORT) || 4000;
+
+app.listen(port, () => {
+  console.log(`🚀 Backend running on http://localhost:${port}`);
+});
+
+
+// END OF FILE: backend/src/index.ts
+
+// START OF FILE: backend/src/middlewares/auth.ts
+
+import type { Request, Response, NextFunction } from "express";
+import {
+  signAccessToken,
+  signRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
+} from "../utils/jwt";
+import type { UserRole } from "../types/common";
+import User from "../models/User";
+
+export type AuthUser = { id: string; role: UserRole };
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+    }
+  }
+}
+
+// This helper function is similar to the one in the controller.
+// For a larger app, it could be moved to a shared utility file.
+function setAuthCookies(res: Response, access: string, refresh: string): void {
+  const secure = (process.env.COOKIE_SECURE ?? "false") === "true";
+  res.cookie("access_token", access, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure,
+    path: "/",
+  });
+  res.cookie("refresh_token", refresh, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure,
+    path: "/",
+  });
+}
+
+export async function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const accessToken = req.cookies?.access_token as string | undefined;
+
+  // If access token exists, try to verify it
+  if (accessToken) {
+    try {
+      const payload = verifyAccessToken(accessToken);
+      req.user = { id: payload.sub, role: payload.role };
+      return next(); // Token is valid, proceed
+    } catch (err) {
+      // Ignore error, token is invalid or expired, will try to refresh
+    }
+  }
+
+  // Token is missing or invalid, try to refresh
+  const refreshToken = req.cookies?.refresh_token as string | undefined;
+  if (!refreshToken) {
+    res.status(401).json({ message: "Unauthorized: No tokens provided" });
+    return;
+  }
+
+  try {
+    const refreshPayload = verifyRefreshToken(refreshToken);
+    const user = await User.findById(refreshPayload.sub);
+
+    if (!user || !user.isActive) {
+      res.status(401).json({ message: "Unauthorized: Invalid user" });
+      return;
+    }
+
+    // Generate new tokens
+    const newAccessToken = signAccessToken(user.id, user.role);
+    const newRefreshToken = signRefreshToken(user.id, user.role); // Rotate refresh token
+
+    // Set new tokens in cookies
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+
+    // Attach user to request and proceed
+    req.user = { id: user.id, role: user.role };
+    next();
+  } catch (err) {
+    // Clear potentially invalid cookies and fail
+    res.clearCookie("access_token", { path: "/" });
+    res.clearCookie("refresh_token", { path: "/" });
+    res.status(401).json({ message: "Unauthorized: Invalid refresh token" });
+  }
+}
+
+export function requireRole(roles: UserRole[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const role = req.user?.role;
+    if (!role || !roles.includes(role)) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
+    next();
+  };
+}
+
+
+// END OF FILE: backend/src/middlewares/auth.ts
+
+// START OF FILE: backend/src/middlewares/errorHandler.ts
+
+import type { Request, Response, NextFunction } from "express";
+import { ZodError, type ZodIssue } from "zod";
+import { MongoServerError } from "mongodb";
+
+interface ErrorResponse {
+  message: string;
+  errors?: Record<string, string[]>;
+  stack?: string;
+}
+
+/**
+ * Advanced Global Error Handler
+ * - Có logger hook (tùy chọn)
+ * - Type mạnh, chạy được cả sync & async
+ */
+export class ErrorHandler {
+  private enableDetailedLog: boolean;
+
+  constructor(enableDetailedLog = process.env.NODE_ENV === "development") {
+    this.enableDetailedLog = enableDetailedLog;
+  }
+
+  // Log errors có cấu trúc rõ ràng, dễ tích hợp logger sau này
+  private logError(err: unknown, req: Request) {
+    const baseInfo = { method: req.method, url: req.originalUrl };
+
+    if (err instanceof Error) {
+      console.error("❌ Error:", { ...baseInfo, message: err.message });
+      if (this.enableDetailedLog) console.error(err.stack);
+    } else {
+      console.error("❌ Unknown error:", baseInfo, err);
+    }
+  }
+
+  // Middleware Express chính
+  public handle = (
+    err: unknown,
+    req: Request,
+    res: Response,
+    _next: NextFunction
+  ): void => {
+    this.logError(err, req); // ✅ Giờ `req` được dùng thật (hợp lệ → không còn warning)
+
+    // ====== Zod Validation ======
+    if (err instanceof ZodError) {
+      const errors: Record<string, string[]> = {};
+      err.issues.forEach((issue: ZodIssue) => {
+        const path = issue.path.join(".");
+        if (!errors[path]) errors[path] = [];
+        errors[path].push(issue.message);
+      });
+      res.status(400).json({ message: "Validation error", errors });
+      return;
+    }
+
+    // ====== Mongo Duplicate Error ======
+    if (err instanceof MongoServerError && err.code === 11000) {
+      res.status(400).json({ message: "Duplicate entry detected." });
+      return;
+    }
+
+    // ====== Mongoose Validation ======
+    if ((err as any).name === "ValidationError") {
+      res.status(400).json({ message: (err as Error).message });
+      return;
+    }
+
+    // ====== Multer Upload Error ======
+    if (err instanceof Error && err.message.includes("File too large")) {
+      res.status(400).json({ message: "File size exceeds 5MB" });
+      return;
+    }
+
+    if (err instanceof Error && err.message.includes("files are allowed")) {
+      res.status(400).json({ message: err.message });
+      return;
+    }
+
+    // ====== Default Server Error ======
+    const response: ErrorResponse = {
+      message: (err instanceof Error && err.message) || "Internal server error",
+    };
+
+    if (this.enableDetailedLog && err instanceof Error) {
+      response.stack = err.stack;
+    }
+
+    res.status(500).json(response);
+  };
+}
+
+// Cấu hình export sẵn instance mặc định
+export const errorHandler = new ErrorHandler().handle;
+
+
+// END OF FILE: backend/src/middlewares/errorHandler.ts
+
+// START OF FILE: backend/src/middlewares/rateLimit.ts
+
+import type { Request, Response, NextFunction } from "express";
+
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+export function aiRateLimit(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const identifier = req.ip || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const limit = parseInt(process.env.AI_RATE_LIMIT_PER_MIN || "5", 10);
+  const windowMs = 60 * 1000; // 1 minute
+
+  let record = rateLimitStore.get(identifier);
+
+  if (!record || now > record.resetAt) {
+    record = { count: 0, resetAt: now + windowMs };
+    rateLimitStore.set(identifier, record);
+  }
+
+  if (record.count >= limit) {
+    res.status(429).json({
+      message: "Too many AI requests. Please try again later.",
+      retryAfter: Math.ceil((record.resetAt - now) / 1000),
+    });
+    return;
+  }
+
+  record.count++;
+  next();
+}
+
+// ✅ Cleanup old entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now > value.resetAt) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
+
+// END OF FILE: backend/src/middlewares/rateLimit.ts
+
+// START OF FILE: backend/src/middlewares/upload.ts
+
+import multer, { type FileFilterCallback } from "multer";
+import type { Request } from "express";
+import path from "path";
+import fs from "fs";
+
+// Tạo folder uploads nếu chưa tồn tại
+const uploadsDir = path.join(__dirname, "../../uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// =======================
+// 1. Factory tạo bộ lọc file
+// =======================
+export function createFileFilter({
+  allowedTypes,
+  allowedMimes,
+  precheck,
+}: {
+  allowedTypes: RegExp;
+  allowedMimes: RegExp;
+  precheck?: (req: Request) => boolean;
+}) {
+  return (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    try {
+      if (precheck && !precheck(req)) {
+        return cb(new Error("Upload not allowed for this request"));
+      }
+
+      const extValid = allowedTypes.test(
+        path.extname(file.originalname).toLowerCase()
+      );
+      const mimeValid = allowedMimes.test(file.mimetype);
+
+      if (extValid && mimeValid) cb(null, true);
+      else cb(new Error(`File type not allowed: ${file.originalname}`));
+    } catch (error) {
+      cb(error as Error);
+    }
+  };
+}
+
+// =======================
+// 2. Config Multer storage
+// =======================
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+  },
+});
+
+// =======================
+// 3. Giới hạn dung lượng file
+// =======================
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+// =======================
+// 4. Trường hợp upload ảnh
+// =======================
+export const uploadImage = multer({
+  storage,
+  limits: { fileSize: MAX_SIZE },
+  fileFilter: createFileFilter({
+    allowedTypes: /\.(jpg|jpeg|png|gif|webp)$/i,
+    allowedMimes: /^image\//,
+    // precheck: (req) => true,  // ← bỏ điều kiện role ở đây
+  }),
+}).single("image");
+
+
+// =======================
+// 5. Trường hợp upload PDF
+// =======================
+export const uploadPDF = multer({
+  storage,
+  limits: { fileSize: MAX_SIZE },
+  fileFilter: createFileFilter({
+    allowedTypes: /\.pdf$/i,
+    allowedMimes: /^application\/pdf$/,
+    precheck: (_req) => true, // Luôn được phép — ai cũng được upload CV
+  }),
+}).single("resume");
+
+
+// END OF FILE: backend/src/middlewares/upload.ts
+
+// START OF FILE: backend/src/models/Application.ts
+
+import mongoose, { Schema, Document } from "mongoose";
+
+export type ApplicationStatus =
+  | "submitted"
+  | "viewed"
+  | "accepted"
+  | "rejected";
+
+export interface IApplication extends Document {
+  job: mongoose.Types.ObjectId;
+  seeker: mongoose.Types.ObjectId;
+  resumeUrl: string;
+  coverLetter?: string; // ✅ đổi từ note → coverLetter
+  status: ApplicationStatus;
+  viewedAt?: Date; // ✅ Có trong interface
+  respondedAt?: Date; // ✅ Có trong interface
+  createdAt: Date; // ✅ Thêm (từ timestamps: true)
+  updatedAt: Date; // ✅ Thêm (từ timestamps: true)
+}
+
+const applicationSchema = new Schema<IApplication>(
+  {
+    job: {
+      type: Schema.Types.ObjectId,
+      ref: "Job",
+      required: true,
+    },
+    seeker: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    resumeUrl: {
+      type: String,
+      required: true,
+    },
+    coverLetter: String,
+    status: {
+      type: String,
+      enum: ["submitted", "viewed", "accepted", "rejected"],
+      default: "submitted",
+    },
+    // ✅ THÊM 2 DÒNG NÀY VÀO SCHEMA
+    viewedAt: { type: Date },
+    respondedAt: { type: Date },
+  },
+  { timestamps: true }
+);
+
+// ✅ Index đúng
+applicationSchema.index({ job: 1, seeker: 1 }, { unique: true });
+
+export default mongoose.model<IApplication>("Application", applicationSchema);
+
+
+// END OF FILE: backend/src/models/Application.ts
+
+// START OF FILE: backend/src/models/Company.ts
+
+// models/Company.ts
+import mongoose, { Schema, Document } from "mongoose";
+
+export interface ICompany extends Document {
+  name: string;
+  description?: string;
+  website?: string;
+  logoUrl?: string;
+  owner: mongoose.Types.ObjectId; // employer user
+}
+
+const companySchema = new Schema<ICompany>(
+  {
+    name: { type: String, required: true, unique: true },
+    description: String,
+    website: String,
+    logoUrl: String,
+    owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model<ICompany>("Company", companySchema);
+
+
+// END OF FILE: backend/src/models/Company.ts
+
+// START OF FILE: backend/src/models/Job.ts
+
+import mongoose, { Schema, Document } from "mongoose";
+
+// ✅ Enum types theo prompt
+export type JobLevel = "entry" | "mid" | "senior" | "lead" | "executive";
+export type JobType =
+  | "full-time"
+  | "part-time"
+  | "contract"
+  | "internship"
+  | "freelance";
+
+export interface IJob extends Document {
+  title: string;
+  description: string;
+  requirements: string[]; // ✅ THÊM (optional field)
+  skills: string[];
+  location?: string; // ✅ Optional (không required)
+  isRemote: boolean; // ✅ Đổi từ "remote" → "isRemote"
+  salaryMin?: number; // ✅ Optional
+  salaryMax?: number; // ✅ Optional
+  level: JobLevel; // ✅ Enum chuẩn
+  type: JobType; // ✅ THÊM field type (QUAN TRỌNG)
+  employer: mongoose.Types.ObjectId;
+  company: mongoose.Types.ObjectId;
+  isActive: boolean; // ✅ Đổi từ "isOpen" → "isActive"
+  closedAt?: Date; // ✅ THÊM field closedAt
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const jobSchema = new Schema<IJob>(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    requirements: {
+      // ✅ THÊM
+      type: [String],
+      default: [],
+    },
+    skills: {
+      type: [String],
+      required: true,
+      validate: {
+        validator: (v: string[]) => v.length > 0,
+        message: "At least one skill is required",
+      },
+    },
+    location: String, // ✅ Optional (không required)
+    isRemote: {
+      // ✅ Đổi tên
+      type: Boolean,
+      default: false,
+    },
+    salaryMin: {
+      // ✅ Optional + validation
+      type: Number,
+      min: 0,
+    },
+    salaryMax: {
+      // ✅ Optional + validation
+      type: Number,
+      min: 0,
+    },
+    level: {
+      type: String,
+      enum: ["entry", "mid", "senior", "lead", "executive"], // ✅ Lowercase theo prompt
+      required: true,
+    },
+    type: {
+      // ✅ THÊM field type (BẮT BUỘC)
+      type: String,
+      enum: ["full-time", "part-time", "contract", "internship", "freelance"],
+      required: true,
+    },
+    employer: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    company: {
+      type: Schema.Types.ObjectId,
+      ref: "Company",
+      required: true,
+    },
+    isActive: {
+      // ✅ Đổi tên từ isOpen
+      type: Boolean,
+      default: true,
+    },
+    closedAt: Date, // ✅ THÊM field closedAt
+  },
+  { timestamps: true }
+);
+
+// ✅ Indexes cho performance
+jobSchema.index({ createdAt: -1 });
+jobSchema.index({ isActive: 1 });
+// ✅ Text index cho search
+jobSchema.index({ title: "text", description: "text", skills: "text" }); // THÊM skills
+export default mongoose.model<IJob>("Job", jobSchema);
+
+
+// END OF FILE: backend/src/models/Job.ts
+
+// START OF FILE: backend/src/models/SeekerProfile.ts
+
+import mongoose, { Schema, Document } from "mongoose";
+
+export interface ISeekerProfile extends Document {
+  user: mongoose.Types.ObjectId;
+  phone?: string;
+  location?: string;
+  bio?: string;
+  skills: string[];
+  experience?: string;
+  education?: string;
+  github?: string;
+  portfolio?: string;
+  linkedin?: string;
+  avatar?: string;
+  resumeUrl?: string;
+}
+
+const seekerProfileSchema = new Schema<ISeekerProfile>(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+    phone: { type: String, trim: true },
+    location: { type: String, trim: true },
+    bio: {
+      type: String,
+      maxlength: [500, "Bio cannot exceed 500 characters"],
+    },
+    skills: { type: [String], default: [] },
+    experience: String,
+    education: String,
+    github: { type: String, trim: true },
+    portfolio: { type: String, trim: true },
+    linkedin: { type: String, trim: true },
+    avatar: String,
+    resumeUrl: String,
+  },
+  { timestamps: true }
+);
+
+// Index for text search
+seekerProfileSchema.index({ skills: "text", bio: "text" });
+
+export default mongoose.model<ISeekerProfile>(
+  "SeekerProfile",
+  seekerProfileSchema
+);
+
+
+// END OF FILE: backend/src/models/SeekerProfile.ts
+
+// START OF FILE: backend/src/models/User.ts
+
+import { Schema, model, Document } from "mongoose";
+import bcrypt from "bcryptjs";
+import type { UserRole } from "../types/common";
+
+export interface IUser extends Document {
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  isActive: boolean;
+  comparePassword(candidate: string): Promise<boolean>;
+}
+
+const UserSchema = new Schema<IUser>(
+  {
+    email: {
+      type: String,
+      unique: true,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: { type: String, required: true },
+    name: { type: String, required: true },
+    role: {
+      type: String,
+      enum: ["seeker", "employer", "admin"],
+      default: "seeker",
+      required: true,
+    },
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+UserSchema.methods.comparePassword = function (
+  candidate: string
+): Promise<boolean> {
+  return bcrypt.compare(candidate, this.password);
+};
+
+export default model<IUser>("User", UserSchema);
+
+
+// END OF FILE: backend/src/models/User.ts
+
+// START OF FILE: backend/src/routes/admin.routes.ts
+
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middlewares/auth";
+import {
+  getStats,
+  getUsers,
+  updateUser,
+  getAllJobs,
+  deleteJobByAdmin,
+} from "../controllers/admin.controller";
+
+const router = Router();
+
+router.use(requireAuth, requireRole(["admin"]));
+
+// ✅ Stats
+router.get("/stats", getStats);
+
+// ✅ Users management
+router.get("/users", getUsers);
+router.patch("/users/:userId", updateUser);
+
+// ✅ Jobs management
+router.get("/jobs", getAllJobs);
+router.delete("/jobs/:jobId", deleteJobByAdmin);
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/admin.routes.ts
+
+// START OF FILE: backend/src/routes/ai.routes.ts
+
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middlewares/auth";
+import {
+  generateCoverLetterAI,
+  summarizeCandidateAI,
+} from "../controllers/application.controller";
+import { generateDescription } from "../controllers/job.controller";
+import { aiRateLimit } from "../middlewares/rateLimit";
+
+const router = Router();
+
+// ✅ Seeker - Generate cover letter
+router.post(
+  "/generate-cover-letter",
+  requireAuth,
+  requireRole(["seeker"]),
+  aiRateLimit, // ✅ THÊM
+  generateCoverLetterAI
+);
+
+// ✅ Employer - Generate job description
+router.post(
+  "/generate-job-description",
+  requireAuth,
+  requireRole(["employer"]),
+  aiRateLimit, // ✅ THÊM
+  generateDescription
+);
+
+// ✅ Employer - Summarize candidate
+router.post(
+  "/summarize-candidate/:applicationId",
+  requireAuth,
+  requireRole(["employer"]),
+  aiRateLimit, // ✅ THÊM
+  summarizeCandidateAI
+);
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/ai.routes.ts
+
+// START OF FILE: backend/src/routes/application.routes.ts
+
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middlewares/auth";
+import {
+  applyToJob,
+  getMyApplications,
+  getJobApplications,
+  updateApplicationStatus,
+  getApplicationById,
+  generateCoverLetterAI,
+  summarizeCandidateAI,
+} from "../controllers/application.controller";
+import { uploadPDF } from "../middlewares/upload";
+
+const router = Router();
+
+// Seeker routes
+router.post(
+  "/jobs/:jobId/apply",
+  requireAuth,
+  requireRole(["seeker"]),
+  uploadPDF,
+  applyToJob
+);
+
+router.get(
+  "/my-applications",
+  requireAuth,
+  requireRole(["seeker"]),
+  getMyApplications
+);
+
+router.post(
+  "/generate-cover-letter",
+  requireAuth,
+  requireRole(["seeker"]),
+  generateCoverLetterAI
+);
+
+// Employer routes
+router.get(
+  "/jobs/:jobId/applications",
+  requireAuth,
+  requireRole(["employer", "admin"]),
+  getJobApplications
+);
+
+router.patch(
+  "/:applicationId/status",
+  requireAuth,
+  requireRole(["employer", "admin"]),
+  updateApplicationStatus
+);
+
+router.post(
+  "/:applicationId/summarize",
+  requireAuth,
+  requireRole(["employer", "admin"]),
+  summarizeCandidateAI
+);
+
+// Shared
+router.get("/:applicationId", requireAuth, getApplicationById);
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/application.routes.ts
+
+// START OF FILE: backend/src/routes/auth.routes.ts
+
+import { Router } from "express";
+import {
+  login,
+  logout,
+  me,
+  refresh,
+  register,
+} from "../controllers/auth.controller";
+import { requireAuth } from "../middlewares/auth";
+
+const router = Router();
+
+router.post("/register", register);
+router.post("/login", login);
+router.post("/refresh", refresh);
+router.post("/logout", logout);
+router.get("/me", requireAuth, me);
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/auth.routes.ts
+
+// START OF FILE: backend/src/routes/company.routes.ts
+
+import { Router } from "express";
+import {
+  getMyCompany,
+  uploadLogo,
+  upsertMyCompany,
+} from "../controllers/company.controller";
+import { requireAuth, requireRole } from "../middlewares/auth";
+import { uploadImage } from "../middlewares/upload"; // ✅ THÊM import
+
+const router = Router();
+
+router.use(requireAuth, requireRole(["employer"]));
+
+router.get("/me", getMyCompany);
+router.put("/me", upsertMyCompany);
+router.post("/logo", uploadImage, uploadLogo); // ✅ THÊM dòng này
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/company.routes.ts
+
+// START OF FILE: backend/src/routes/job.routes.ts
+
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middlewares/auth";
+import {
+  getJobs,
+  getJobById,
+  createJob,
+  updateJob,
+  deleteJob,
+  toggleJobStatus,
+  getMyJobs,
+} from "../controllers/job.controller";
+
+const router = Router();
+
+// ============================================
+// PUBLIC ROUTES
+// ============================================
+router.get("/", getJobs);
+
+// ============================================
+// EMPLOYER / ADMIN ROUTES (SPECIFIC FIRST!)
+// ============================================
+
+// ✅ PHẢI Ở TRƯỚC /:id
+router.get(
+  "/employer/my-jobs",
+  requireAuth,
+  requireRole(["employer"]),
+  getMyJobs
+);
+
+// ✅ Giờ mới đến dynamic routes
+router.get("/:id", getJobById);
+
+router.post("/", requireAuth, requireRole(["employer", "admin"]), createJob);
+
+router.put("/:id", requireAuth, requireRole(["employer", "admin"]), updateJob);
+
+router.patch(
+  "/:id/toggle-status",
+  requireAuth,
+  requireRole(["employer", "admin"]),
+  toggleJobStatus
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  requireRole(["employer", "admin"]),
+  deleteJob
+);
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/job.routes.ts
+
+// START OF FILE: backend/src/routes/profile.routes.ts
+
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middlewares/auth";
+import {
+  getSeekerProfile,
+  updateSeekerProfile,
+  uploadAvatar,
+  uploadResume,
+} from "../controllers/profile.controller";
+import { uploadImage, uploadPDF } from "../middlewares/upload";
+
+const router = Router();
+
+router.use(requireAuth, requireRole(["seeker"]));
+
+router.get("/seeker", getSeekerProfile);
+router.put("/seeker", updateSeekerProfile);
+router.post("/seeker/avatar", uploadImage, uploadAvatar);
+router.post("/seeker/resume", uploadPDF, uploadResume);
+
+export default router;
+
+
+// END OF FILE: backend/src/routes/profile.routes.ts
+
+// START OF FILE: backend/src/seed.ts
+
+// src/seed.ts
+import mongoose from "mongoose";
+import { connectDB } from "./config/db";
+import User from "./models/User";
+import Company from "./models/Company";
+import Job from "./models/Job";
+import SeekerProfile from "./models/SeekerProfile";
+import Application from "./models/Application"; // ✅ THÊM
+
+async function main() {
+  await connectDB();
+
+  // 🔄 Xoá dữ liệu cũ
+  await Promise.all([
+    User.deleteMany({}),
+    Company.deleteMany({}),
+    Job.deleteMany({}),
+    SeekerProfile.deleteMany({}),
+    Application.deleteMany({}), // ✅ THÊM
+  ]);
+
+  // 👤 Seed người dùng
+  const admin = await User.create({
+    email: "admin@example.com",
+    password: "admin123",
+    name: "Admin",
+    role: "admin",
+  });
+
+  const employer = await User.create({
+    email: "hr@example.com",
+    password: "hr12345",
+    name: "HR Manager",
+    role: "employer",
+  });
+
+  const seeker = await User.create({
+    email: "dev@example.com",
+    password: "dev12345",
+    name: "Dev Seeker",
+    role: "seeker",
+  });
+
+  // ✅ Tạo profile cho seeker
+  const seekerProfile = await SeekerProfile.create({
+    user: seeker._id,
+    phone: "+84 123 456 789",
+    location: "Ho Chi Minh City, Vietnam",
+    bio: "Passionate developer with 2 years of experience in MERN stack",
+    skills: ["JavaScript", "TypeScript", "React", "Node.js", "MongoDB"],
+    experience: "2 years in web development",
+    education: "Bachelor of Computer Science",
+    github: "https://github.com/devseeker",
+    portfolio: "https://devseeker.dev",
+    linkedin: "https://linkedin.com/in/devseeker",
+    resumeUrl:
+      "https://res.cloudinary.com/demo/raw/upload/v1234567890/sample_resume.pdf", // ✅ Giả lập CV có sẵn
+  });
+
+  // 🏢 Seed công ty
+  const company = await Company.create({
+    name: "TechCorp Solutions",
+    description: "Leading technology company specializing in web solutions",
+    website: "https://techcorp.example.com",
+    owner: employer._id,
+  });
+
+  // 💼 Seed jobs
+  const job1 = await Job.create({
+    title: "Senior Full-Stack Developer",
+    description:
+      "We are looking for an experienced full-stack developer to join our team",
+    requirements: [
+      "5+ years of experience in web development",
+      "Strong problem-solving skills",
+      "Excellent communication skills",
+    ],
+    skills: ["JavaScript", "TypeScript", "React", "Node.js", "MongoDB"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "senior",
+    type: "full-time",
+    salaryMin: 2000,
+    salaryMax: 3500,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job2 = await Job.create({
+    title: "Frontend Developer (React)",
+    description: "Join our team to build modern user interfaces",
+    requirements: ["3+ years React experience", "TypeScript proficiency"],
+    skills: ["React", "TypeScript", "CSS", "Tailwind"],
+    location: "Remote",
+    isRemote: true,
+    level: "mid",
+    type: "full-time",
+    salaryMin: 1500,
+    salaryMax: 2500,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  // 📄 Seed 1 application mẫu (seeker apply job1)
+  const application = await Application.create({
+    job: job1._id,
+    seeker: seeker._id,
+    resumeUrl: seekerProfile.resumeUrl ?? "",
+    coverLetter:
+      "Dear HR Manager, I’m excited to apply for the Senior Full-Stack Developer role at TechCorp. My experience with React and Node.js makes me a strong fit for this position.",
+    status: "submitted",
+  });
+
+  // 🟢 Log kết quả
+  console.log("✅ Seed completed successfully!");
+  console.table([
+    { Role: "Admin", Email: admin.email, Password: "admin123" },
+    { Role: "Employer", Email: employer.email, Password: "hr12345" },
+    { Role: "Seeker", Email: seeker.email, Password: "dev12345" },
+  ]);
+  console.log("🏢 Company:", company.name);
+  console.log("💼 Jobs:", job1.title, "+", job2.title);
+  console.log("👤 Seeker profile:", seekerProfile.skills.join(", "));
+  console.log("📄 Application:",(application.coverLetter ?? "").slice(0, 60) + "...");
+  console.log("📦 Database:", mongoose.connection.name);
+
+  await mongoose.disconnect();
+  process.exit(0);
+}
+
+main().catch((e) => {
+  console.error("❌ Seed error:", e);
+  process.exit(1);
+});
+
+
+// END OF FILE: backend/src/seed.ts
+
+// START OF FILE: backend/src/server.ts
+
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import { connectDB } from "./config/db";
+import { env } from "./utils/env";
+import { errorHandler } from "./middlewares/errorHandler"; // ✅ THÊM
+
+// Import routes
+import authRoutes from "./routes/auth.routes";
+import companyRoutes from "./routes/company.routes";
+import jobRoutes from "./routes/job.routes";
+import applicationRoutes from "./routes/application.routes"; // ✅ THÊM
+import profileRoutes from "./routes/profile.routes"; // ✅ THÊM
+import adminRoutes from "./routes/admin.routes"; // ✅ THÊM
+import aiRoutes from "./routes/ai.routes";
+
+export const app = express();
+
+// Core middlewares
+app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
+app.use(express.json());
+app.use(cookieParser());
+
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api/company", companyRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes); // ✅ THÊM
+app.use("/api/profile", profileRoutes); // ✅ THÊM
+app.use("/api/admin", adminRoutes); // ✅ THÊM
+app.use("/api/ai", aiRoutes); // ✅ THÊM
+
+// Health check
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// ✅ Global error handler (PHẢI Ở CUỐI)
+app.use(errorHandler);
+
+// Connect to database
+connectDB();
+
+
+// END OF FILE: backend/src/server.ts
+
+// START OF FILE: backend/src/services/cloudinary.service.ts
+
+import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
+import { env } from "../utils/env";
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: env.CLOUDINARY_CLOUD_NAME,
+  api_key: env.CLOUDINARY_API_KEY,
+  api_secret: env.CLOUDINARY_API_SECRET,
+});
+interface UploadResult {
+  secure_url: string;
+  public_id: string;
+}
+
+/**
+ * Upload file to Cloudinary
+ * @param filePath - Local file path
+ * @param folder - Cloudinary folder name
+ * @param resourceType - 'image' or 'raw' (for PDFs)
+ */
+export async function uploadToCloudinary(
+  filePath: string,
+  folder: string,
+  resourceType: "image" | "raw" = "image"
+): Promise<UploadResult> {
+  try {
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: `job-portal/${folder}`,
+      resource_type: resourceType,
+    });
+
+    // Delete temporary file after successful upload
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    return {
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+    };
+  } catch (error) {
+    // Delete temporary file on error
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Delete file from Cloudinary
+ * @param publicId - Cloudinary public ID
+ */
+export async function deleteFromCloudinary(publicId: string): Promise<void> {
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error("Error deleting from Cloudinary:", error);
+    // Don't throw - deletion failure shouldn't break the flow
+  }
+}
+
+
+// END OF FILE: backend/src/services/cloudinary.service.ts
+
+// START OF FILE: backend/src/services/gemini.service.ts
+
+import { GoogleGenAI } from "@google/genai";
+
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error("GEMINI_API_KEY is not defined in environment variables");
+}
+
+const ai = new GoogleGenAI({ apiKey });
+
+/**
+ * Generate cover letter using Gemini AI
+ * @param jobTitle - Job title
+ * @param jobDescription - Job description
+ * @param seekerProfile - Seeker's profile info
+ */
+export async function generateCoverLetter(
+  jobTitle: string,
+  jobDescription: string,
+  seekerProfile: {
+    name: string;
+    skills: string[];
+    experience?: string;
+  }
+): Promise<string> {
+  const prompt = `
+Generate a professional cover letter for the following job application:
+
+Job Title: ${jobTitle}
+Job Description: ${jobDescription}
+
+Applicant Information:
+- Name: ${seekerProfile.name}
+- Skills: ${seekerProfile.skills.join(", ")}
+${seekerProfile.experience ? `- Experience: ${seekerProfile.experience}` : ""}
+
+Please write a compelling cover letter (max 300 words) that:
+1. Shows enthusiasm for the position
+2. Highlights relevant skills
+3. Explains why the candidate is a good fit
+4. Uses a professional tone
+
+Do not include placeholder text like [Your Name] or [Date].
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    // ✅ FIX: Handle undefined case
+    if (!response.text) {
+      throw new Error("No response from Gemini API");
+    }
+
+    return response.text;
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    throw new Error("Failed to generate cover letter");
+  }
+}
+
+/**
+ * Generate job description using Gemini AI
+ * @param jobTitle - Job title
+ * @param skills - Required skills
+ * @param level - Job level
+ */
+export async function generateJobDescription(
+  jobTitle: string,
+  skills: string[],
+  level: string
+): Promise<string> {
+  const prompt = `
+Generate a professional job description for:
+
+Position: ${jobTitle}
+Required Skills: ${skills.join(", ")}
+Level: ${level}
+
+Please create a comprehensive job description (max 400 words) that includes:
+1. Role overview
+2. Key responsibilities (3-5 bullet points)
+3. Required qualifications
+4. Nice-to-have skills
+5. What makes this position exciting
+
+Use a professional and engaging tone.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    // ✅ FIX: Handle undefined case
+    if (!response.text) {
+      throw new Error("No response from Gemini API");
+    }
+
+    return response.text;
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    throw new Error("Failed to generate job description");
+  }
+}
+
+/**
+ * Summarize candidate profile using Gemini AI
+ * @param resumeText - Text extracted from resume
+ * @param jobRequirements - Job requirements
+ */
+export async function summarizeCandidate(
+  resumeText: string,
+  jobRequirements: string
+): Promise<string> {
+  const prompt = `
+Analyze this candidate's resume and provide a 3-line summary focusing on their fit for the job:
+
+Resume:
+${resumeText.substring(0, 2000)} // Limit to avoid token limits
+
+Job Requirements:
+${jobRequirements}
+
+Provide a concise 3-line summary that highlights:
+1. Key strengths
+2. Relevant experience
+3. Overall fit for the position
+
+Keep it objective and professional.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    // ✅ FIX: Handle undefined case
+    if (!response.text) {
+      throw new Error("No response from Gemini API");
+    }
+
+    return response.text;
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    throw new Error("Failed to summarize candidate");
+  }
+}
+
+
+// END OF FILE: backend/src/services/gemini.service.ts
+
+// START OF FILE: backend/src/types/common.ts
+
+export type UserRole = "seeker" | "employer" | "admin";
+
+
+// END OF FILE: backend/src/types/common.ts
+
+// START OF FILE: backend/src/utils/env.ts
+
+import dotenv from "dotenv";
+import { z } from "zod";
+
+dotenv.config();
+
+const envSchema = z.object({
+  PORT: z.string().default("4000"),
+  MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
+  JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
+  JWT_ACCESS_EXPIRES: z.string().default("15m"),
+  JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
+  JWT_REFRESH_EXPIRES: z.string().default("7d"),
+  FRONTEND_URL: z.string().default("http://localhost:3000"),
+  COOKIE_SECURE: z.string().default("false"),
+
+  // ✅ THÊM Cloudinary
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),
+  CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY is required"),
+  CLOUDINARY_API_SECRET: z.string().min(1, "CLOUDINARY_API_SECRET is required"),
+
+  // ✅ THÊM Gemini
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
+
+  // ✅ THÊM Upload config (optional, có default)
+  MAX_FILE_SIZE: z.string().default("5242880"),
+  AI_RATE_LIMIT_PER_MIN: z.string().default("5"),
+});
+
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  console.error("❌ Invalid environment variables:", parsedEnv.error.format());
+  process.exit(1);
+}
+
+export const env = parsedEnv.data;
+
+
+// END OF FILE: backend/src/utils/env.ts
+
+// START OF FILE: backend/src/utils/jwt.ts
+
+// backend/src/utils/jwt.ts
+import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
+import type { UserRole } from "../types/common";
+
+// Kiểu chuỗi thời gian hợp lệ theo ms (vd: "15m", "7d", "3600", "500ms")
+type MsString = import("ms").StringValue;
+
+type Payload = { sub: string; role: UserRole };
+
+function getAccessSecret(): Secret {
+  return (process.env.JWT_ACCESS_SECRET ??
+    "dev_access_secret_change_me") as Secret;
+}
+function getRefreshSecret(): Secret {
+  return (process.env.JWT_REFRESH_SECRET ??
+    "dev_refresh_secret_change_me") as Secret;
+}
+
+// Regex đơn giản để xác thực "s/m/h/d/w/y/ms" hoặc số thuần (giây)
+const MS_TOKEN_RE = /^\d+(ms|s|m|h|d|w|y)$/i;
+const NUMBER_RE = /^\d+$/;
+
+function buildExpiresIn(
+  envVal: string | undefined,
+  fallback: MsString | number
+): SignOptions {
+  let expiresIn: MsString | number = fallback;
+
+  if (envVal) {
+    if (NUMBER_RE.test(envVal)) {
+      // số thuần => dùng number
+      expiresIn = Number(envVal);
+    } else if (MS_TOKEN_RE.test(envVal)) {
+      // dạng "15m", "7d", "500ms" => coi là MsString
+      expiresIn = envVal as unknown as MsString;
+    } else {
+      // giá trị không hợp lệ -> giữ fallback
+    }
+  }
+
+  return { expiresIn };
+}
+
+export function signAccessToken(userId: string, role: UserRole): string {
+  const payload: Payload = { sub: userId, role };
+  const secret: Secret = getAccessSecret();
+  const options: SignOptions = buildExpiresIn(
+    process.env.JWT_ACCESS_EXPIRES,
+    "15m" as MsString
+  );
+  return jwt.sign(payload, secret, options);
+}
+
+export function signRefreshToken(userId: string, role: UserRole): string {
+  const payload: Payload = { sub: userId, role };
+  const secret: Secret = getRefreshSecret();
+  const options: SignOptions = buildExpiresIn(
+    process.env.JWT_REFRESH_EXPIRES,
+    "7d" as MsString
+  );
+  return jwt.sign(payload, secret, options);
+}
+
+export function verifyAccessToken(token: string): Payload {
+  return jwt.verify(token, getAccessSecret()) as Payload;
+}
+
+export function verifyRefreshToken(token: string): Payload {
+  return jwt.verify(token, getRefreshSecret()) as Payload;
+}
+
+
+// END OF FILE: backend/src/utils/jwt.ts
+
+// START OF FILE: backend/src/utils/pagination.ts
+
+export function parsePositiveInt(
+  input: string | undefined,
+  fallback: number
+): number {
+  const n = Number(input);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.floor(n);
+}
+
+export function parseBoolean(input: string | undefined): boolean | undefined {
+  if (input === undefined) return undefined;
+  const s = input.trim().toLowerCase();
+  if (["true", "1", "yes"].includes(s)) return true;
+  if (["false", "0", "no"].includes(s)) return false;
+  return undefined;
+}
+
+
+// END OF FILE: backend/src/utils/pagination.ts
+
+// START OF FILE: backend/tsconfig.json
+
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+
+
+// END OF FILE: backend/tsconfig.json
+
