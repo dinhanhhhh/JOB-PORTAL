@@ -45,20 +45,19 @@ type LoginDto = z.infer<typeof loginSchema>;
  * Helper: Set access và refresh tokens vào httpOnly cookies
  */
 function setAuthCookies(res: Response, access: string, refresh: string): void {
-  const secure = (process.env.COOKIE_SECURE ?? "false") === "true";
-
+  const isProd = process.env.NODE_ENV === "production";
   res.cookie("access_token", access, {
     httpOnly: true,
-    sameSite: "lax",
-    secure,
+    sameSite: isProd ? "none" : "lax", // 🔥 cho phép gửi cookie cross-domain
+    secure: isProd, // 🔥 bắt buộc true khi sameSite = none
     path: "/",
     maxAge: 15 * 60 * 1000, // 15 phút
   });
 
   res.cookie("refresh_token", refresh, {
     httpOnly: true,
-    sameSite: "lax",
-    secure,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
   });
