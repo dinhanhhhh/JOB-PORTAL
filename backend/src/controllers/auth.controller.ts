@@ -297,20 +297,20 @@ export async function googleCallback(
     const refresh = signRefreshToken(userId, user.role);
 
     // Set tokens vào httpOnly cookies
-    const secure = (process.env.COOKIE_SECURE ?? "false") === "true";
+    // secure được suy ra theo NODE_ENV ngay ở cấu hình cookie bên dưới
 
     res.cookie("access_token", access, {
       httpOnly: true,
-      sameSite: "lax",
-      secure,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 15 * 60 * 1000, // 15 phút
     });
 
     res.cookie("refresh_token", refresh, {
       httpOnly: true,
-      sameSite: "lax",
-      secure,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
     });
