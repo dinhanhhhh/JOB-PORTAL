@@ -19,6 +19,9 @@ import aiRoutes from "./routes/ai.routes";
 export const app = express();
 
 // Core middlewares
+// Tin cậy proxy (Render/Heroku/Cloudflare) để cookie `secure` hoạt động đúng
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: [
