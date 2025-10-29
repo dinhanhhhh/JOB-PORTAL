@@ -181,7 +181,7 @@ export default function DashboardPage() {
         <CustomButton onClick={submit} loading={loading} disabled={loading}>
           Tạo Job
         </CustomButton>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Lưu ý: Cần có Company trước khi đăng Job. Nếu gặp lỗi “Please create a
           company profile first”, hãy vào trang <code>/company</code> để tạo.
         </p>
@@ -189,3 +189,4 @@ export default function DashboardPage() {
     </Card>
   );
 }
+

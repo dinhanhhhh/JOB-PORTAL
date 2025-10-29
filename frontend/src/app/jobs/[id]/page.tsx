@@ -68,7 +68,7 @@ export default function JobDetailPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Job Details */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-card text-card-foreground rounded-lg border p-6 mb-6">
         <h1 className="text-2xl font-bold mb-4">{job.title}</h1>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
@@ -96,7 +96,7 @@ export default function JobDetailPage() {
             {job.skills.map((skill) => (
               <span
                 key={skill}
-                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm"
               >
                 {skill}
               </span>
@@ -107,7 +107,7 @@ export default function JobDetailPage() {
 
       {/* Apply Form - Only for Seekers */}
       {user?.role === "seeker" && (
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-card text-card-foreground rounded-lg border p-6">
           <h2 className="text-xl font-bold mb-4">Ứng tuyển công việc</h2>
 
           <div className="mb-4">
@@ -118,7 +118,7 @@ export default function JobDetailPage() {
               type="file"
               accept=".pdf"
               onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
 
@@ -151,3 +151,4 @@ export default function JobDetailPage() {
     </div>
   );
 }
+
