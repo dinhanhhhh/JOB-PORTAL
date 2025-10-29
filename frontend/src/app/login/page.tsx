@@ -49,19 +49,19 @@ export default function LoginPage() {
         </div>
 
         {user ? (
-          <p className="text-sm text-slate-300">Redirecting…</p>
+          <p className="text-sm text-muted-foreground">Redirecting…</p>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email address</Label>
               <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-              {errors.email && <p className="text-sm text-red-400">{errors.email.message}</p>}
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" {...register("password")} />
-              {errors.password && <p className="text-sm text-red-400">{errors.password.message}</p>}
+              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
 
             <div className="flex items-center justify-between text-sm">
@@ -69,7 +69,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="h-4 w-4 rounded border-slate-700 bg-slate-900/40" />
                 Remember me
               </label>
-              <a className="text-indigo-400 hover:text-indigo-300" href="#">Forgot password?</a>
+              <a className="text-primary hover:text-primary/90" href="#">Forgot password?</a>
             </div>
 
             <Button className="w-full" disabled={isSubmitting}>
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 <span className="w-full border-t border-slate-800" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-slate-900/60 px-2 text-slate-400">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
 
@@ -104,11 +104,9 @@ export default function LoginPage() {
             </Button>
           </form>
         )}
-        <p className="mt-6 text-center text-sm text-slate-400">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Don’t have an account?{' '}
-          <Link href="/register" className="text-indigo-400 hover:text-indigo-300">
-            Sign up
-          </Link>
+          <Link href="/register" className="text-primary hover:text-primary/90">Sign up</Link>
         </p>
       </Card>
     </div>

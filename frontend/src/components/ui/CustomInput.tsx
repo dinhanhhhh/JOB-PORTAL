@@ -19,7 +19,7 @@ const CustomInput = forwardRef<HTMLInputElement, CustomInputProps>(
           className={error ? "border-red-500" : className}
           {...props}
         />
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     );
   }

@@ -64,17 +64,17 @@ export default function RegisterPage() {
           <div className="space-y-2">
             <Label htmlFor="name">Full name</Label>
             <Input id="name" placeholder="Your name" {...register("name")} />
-            {errors.name && <p className="text-sm text-red-400">{errors.name.message}</p>}
+            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-            {errors.email && <p className="text-sm text-red-400">{errors.email.message}</p>}
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" {...register("password")} />
-            {errors.password && <p className="text-sm text-red-400">{errors.password.message}</p>}
+            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
@@ -82,8 +82,8 @@ export default function RegisterPage() {
               <option className="bg-slate-900" value="seeker">Seeker</option>
               <option className="bg-slate-900" value="employer">Employer</option>
             </select>
-            <p className="text-xs text-slate-400">Selected: <b>{role}</b></p>
-            {errors.role && (<p className="text-sm text-red-400">{errors.role.message}</p>)}
+            <p className="text-xs text-muted-foreground">Selected: <b>{role}</b></p>
+            {errors.role && (<p className="text-sm text-destructive">{errors.role.message}</p>)}
           </div>
 
           <Button className="w-full" disabled={isSubmitting}>
@@ -95,7 +95,7 @@ export default function RegisterPage() {
               <span className="w-full border-t border-slate-800" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-slate-900/60 px-2 text-slate-400">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
 
@@ -114,11 +114,9 @@ export default function RegisterPage() {
             Google
           </Button>
         </form>
-        <p className="mt-6 text-center text-sm text-slate-400">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="text-indigo-400 hover:text-indigo-300">
-            Sign in
-          </Link>
+          <Link href="/login" className="text-primary hover:text-primary/90">Sign in</Link>
         </p>
       </Card>
     </div>

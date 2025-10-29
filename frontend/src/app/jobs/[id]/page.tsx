@@ -118,7 +118,7 @@ export default function JobDetailPage() {
               type="file"
               accept=".pdf"
               onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-accent file:text-accent-foreground hover:file:opacity-90"
             />
           </div>
 
