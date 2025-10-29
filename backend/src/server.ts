@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import passport from "./config/passport";
 import { connectDB } from "./config/db";
 import { env } from "./utils/env";
@@ -43,6 +44,11 @@ app.use(
     secret: env.JWT_ACCESS_SECRET,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: env.MONGODB_URI,
+      collectionName: "sessions",
+      ttl: 14 * 24 * 60 * 60,
+    }),
     cookie: {
       secure: process.env.NODE_ENV === "production", // ✅ Tự động
       httpOnly: true,
