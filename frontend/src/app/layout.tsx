@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Job Portal",
@@ -14,12 +15,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <body>
-        <AuthProvider>
-          <Navbar />
-          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Navbar />
+            <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -49,7 +49,7 @@ export default function CompanyPage() {
   };
 
   return (
-    <div className="max-w-xl bg-white border rounded-xl p-6 space-y-4">
+    <div className="max-w-xl bg-card text-card-foreground border rounded-xl p-6 space-y-4">
       <h1 className="text-xl font-semibold">Company (Employer)</h1>
       <CustomInput
         label="Tên công ty"
@@ -69,10 +69,11 @@ export default function CompanyPage() {
       />
       <CustomButton onClick={save}>Lưu</CustomButton>
       {company && (
-        <p className="text-sm text-gray-600 mt-2">
+        <p className="text-sm text-muted-foreground mt-2">
           Cập nhật gần nhất: {company.name}
         </p>
       )}
     </div>
   );
 }
+

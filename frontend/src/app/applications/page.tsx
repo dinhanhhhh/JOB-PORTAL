@@ -46,21 +46,21 @@ export default function MyApplicationsPage() {
       <h1 className="text-xl font-semibold">Đơn ứng tuyển của tôi</h1>
       <div className="space-y-3">
         {apps.map((a) => (
-          <div key={a._id} className="bg-white border rounded-xl p-4">
+          <div key={a._id} className="bg-card text-card-foreground border rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="font-medium">{getJobTitle(a.job)}</div>
-              <span className="text-xs px-2 py-1 bg-gray-100 rounded">
+              <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded">
                 {a.status}
               </span>
             </div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               {(a.coverLetter ?? "").slice(0, 100)}
             </div>
             {/* Thêm link đến job nếu cần */}
             <div className="mt-2">
               <a
                 href={`/jobs/${getJobId(a.job)}`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 Xem chi tiết job
               </a>
@@ -68,9 +68,10 @@ export default function MyApplicationsPage() {
           </div>
         ))}
         {apps.length === 0 && (
-          <p className="text-sm text-gray-600">Chưa có đơn nào.</p>
+          <p className="text-sm text-muted-foreground">Chưa có đơn nào.</p>
         )}
       </div>
     </div>
   );
 }
+

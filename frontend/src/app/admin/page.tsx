@@ -34,7 +34,7 @@ export default function AdminPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-3 py-1 rounded border ${
-              tab === t ? "bg-black text-white" : "bg-white"
+              tab === t ? "bg-primary text-primary-foreground" : "bg-card"
             }`}
           >
             {t}
@@ -302,3 +302,4 @@ function ApplicationsTab() {
     </div>
   );
 }
+

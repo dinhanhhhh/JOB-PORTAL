@@ -66,7 +66,7 @@ export default function ProfilePage() {
   if (!profile) return <p>Đang tải profile...</p>;
 
   return (
-    <div className="max-w-xl bg-white border rounded-xl p-6 space-y-4">
+    <div className="max-w-xl bg-card text-card-foreground border rounded-xl p-6 space-y-4">
       <h1 className="text-xl font-semibold">Hồ sơ</h1>
       <CustomTextarea
         label="Bio"
@@ -83,3 +83,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
