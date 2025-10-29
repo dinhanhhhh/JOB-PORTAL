@@ -21,17 +21,17 @@ declare global {
 // This helper function is similar to the one in the controller.
 // For a larger app, it could be moved to a shared utility file.
 function setAuthCookies(res: Response, access: string, refresh: string): void {
-  const secure = (process.env.COOKIE_SECURE ?? "false") === "true";
+  const isProd = process.env.NODE_ENV === "production" || (process.env.COOKIE_SECURE ?? "false") === "true";
   res.cookie("access_token", access, {
     httpOnly: true,
-    sameSite: "lax",
-    secure,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
     path: "/",
   });
   res.cookie("refresh_token", refresh, {
     httpOnly: true,
-    sameSite: "lax",
-    secure,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
     path: "/",
   });
 }
