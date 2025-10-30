@@ -267,8 +267,20 @@ export async function refresh(req: Request, res: Response): Promise<void> {
  * Đăng xuất (xóa cookies)
  */
 export async function logout(_req: Request, res: Response): Promise<void> {
-  res.clearCookie("access_token", { path: "/" });
-  res.clearCookie("refresh_token", { path: "/" });
+  // Nên tạo biến isProd giống như lúc set cookie
+  const isProd = process.env.NODE_ENV === "production";
+  res.clearCookie("access_token", {
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    path: "/",
+  });
+  res.clearCookie("refresh_token", {
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    path: "/",
+  });
   res.json({ ok: true });
 }
 
