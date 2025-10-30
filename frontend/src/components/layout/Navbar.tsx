@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/components/providers/AuthProvider";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+
+// Load ThemeToggle on client only to avoid SSR hydration mismatch
+const ThemeToggle = dynamic(() => import("@/components/ui/ThemeToggle"), {
+  ssr: false,
+});
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
@@ -39,7 +44,9 @@ export default function Navbar() {
             (user?.role === "employer" || user?.role === "admin") && (
               <>
                 <Link href="/applications" className={linkClass("/applications")}>Applications</Link>
-                <Link href="/company" className={linkClass("/company")}>Company</Link>
+                {user?.role === "employer" && (
+                  <Link href="/company" className={linkClass("/company")}>Company</Link>
+                )}
                 <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
               </>
             )}

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { getMyCompany, upsertMyCompany } from "@/lib/company";
 import type { Company } from "@/types";
 import CustomInput from "@/components/ui/CustomInput";
@@ -9,6 +10,7 @@ import CustomTextarea from "@/components/ui/CustomTextarea";
 import CustomButton from "@/components/ui/CustomButton";
 
 export default function CompanyPage() {
+  const { user, loading } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [form, setForm] = useState<{
     name: string;
@@ -47,6 +49,13 @@ export default function CompanyPage() {
     setCompany(data.company);
     alert("Đã lưu company");
   };
+
+  if (loading) {
+    return <div className="max-w-xl bg-card text-card-foreground border rounded-xl p-6">Đang tải...</div>;
+  }
+  if (user?.role !== "employer") {
+    return <div className="max-w-xl bg-card text-card-foreground border rounded-xl p-6">403 - Chỉ employer mới truy cập trang Company.</div>;
+  }
 
   return (
     <div className="max-w-xl bg-card text-card-foreground border rounded-xl p-6 space-y-4">

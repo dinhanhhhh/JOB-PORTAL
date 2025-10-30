@@ -15,12 +15,7 @@ export default function ThemeToggle() {
       aria-label="Toggle theme"
       title="Toggle theme"
     >
-      {theme === "dark" ? (
-        <span>☀️ Light</span>
-      ) : (
-        <span>🌙 Dark</span>
-      )}
+      {theme === "dark" ? <span>☀️ Light</span> : <span>🌙 Dark</span>}
     </Button>
   );
 }
-
