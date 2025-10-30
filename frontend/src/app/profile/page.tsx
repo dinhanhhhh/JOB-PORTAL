@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { getMyProfile, updateMyProfile } from "@/lib/profile";
@@ -15,23 +15,11 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState<string>("");
 
   useEffect(() => {
-    if (loading) return; // Wait for auth to load
-
-    if (!user) {
-      console.log("No user found");
-      return;
-    }
-
-    if (user.role !== "seeker") {
-      console.log("User is not a seeker, role:", user.role);
-      return;
-    }
+    if (loading || !user || user.role !== "seeker") return;
 
     let mounted = true;
-    console.log("Fetching profile for user:", user);
     getMyProfile()
       .then((data) => {
-        console.log("Profile data received:", data);
         if (!mounted) return;
         setProfile(data.profile);
         setBio(data.profile.bio ?? "");
@@ -39,7 +27,6 @@ export default function ProfilePage() {
       })
       .catch((error) => {
         console.error("Error fetching profile:", error);
-        /* not seeker / not logged in */
       });
     return () => {
       mounted = false;
@@ -51,35 +38,34 @@ export default function ProfilePage() {
       bio,
       skills: skills
         .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0),
+        .map((skill) => skill.trim())
+        .filter((skill) => skill.length > 0),
     };
     const data = await updateMyProfile(body);
     setProfile(data.profile);
-    alert("Đã lưu profile");
+    alert("Profile saved");
   };
 
-  if (loading) return <p>Đang tải...</p>;
-  if (!user) return <p>Vui lòng đăng nhập để xem profile</p>;
-  if (user.role !== "seeker")
-    return <p>Chỉ có seeker mới có thể xem profile này</p>;
-  if (!profile) return <p>Đang tải profile...</p>;
+  if (loading) return <p>Loading...</p>;
+  if (!user) return <p>Please sign in to view your profile.</p>;
+  if (user.role !== "seeker") return <p>Only seekers can view this profile.</p>;
+  if (!profile) return <p>Loading profile...</p>;
 
   return (
-    <div className="max-w-xl bg-card text-card-foreground border rounded-xl p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Hồ sơ</h1>
+    <div className="max-w-xl interactive-panel space-y-4 p-6">
+      <h1 className="text-xl font-semibold">Profile</h1>
       <CustomTextarea
         label="Bio"
         rows={4}
         value={bio}
-        onChange={(e) => setBio(e.target.value)}
+        onChange={(event) => setBio(event.target.value)}
       />
       <CustomInput
-        label="Skills (phân tách bằng dấu phẩy)"
+        label="Skills (comma separated)"
         value={skills}
-        onChange={(e) => setSkills(e.target.value)}
+        onChange={(event) => setSkills(event.target.value)}
       />
-      <CustomButton onClick={save}>Lưu</CustomButton>
+      <CustomButton onClick={save}>Save</CustomButton>
     </div>
   );
 }

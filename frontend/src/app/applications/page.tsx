@@ -1,19 +1,17 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { getMyApplications } from "@/lib/applications";
 import type { Application, Job } from "@/types";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-// Helper function để lấy job title an toàn
 const getJobTitle = (job: string | Job): string => {
   if (typeof job === "string") {
-    return "Loading..."; // Hoặc có thể fetch job details nếu cần
+    return "Loading...";
   }
   return job.title;
 };
 
-// Helper function để lấy job ID an toàn (nếu cần cho link)
 const getJobId = (job: string | Job): string => {
   if (typeof job === "string") {
     return job;
@@ -43,32 +41,36 @@ export default function MyApplicationsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Đơn ứng tuyển của tôi</h1>
+      <h1 className="text-xl font-semibold">My Applications</h1>
       <div className="space-y-3">
         {apps.map((a) => (
-          <div key={a._id} className="bg-card text-card-foreground border rounded-xl p-4">
-            <div className="flex items-center justify-between">
+          <div
+            key={a._id}
+            className="interactive-panel hover-rise space-y-2 rounded-xl p-4"
+          >
+            <div className="flex items-center justify-between gap-2">
               <div className="font-medium">{getJobTitle(a.job)}</div>
-              <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded">
+              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground border border-white/10">
                 {a.status}
               </span>
             </div>
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-muted-foreground">
               {(a.coverLetter ?? "").slice(0, 100)}
             </div>
-            {/* Thêm link đến job nếu cần */}
-            <div className="mt-2">
+            <div className="pt-1 text-sm">
               <a
                 href={`/jobs/${getJobId(a.job)}`}
-                className="text-sm text-primary hover:underline"
+                className="interactive-link text-primary"
               >
-                Xem chi tiết job
+                View job details
               </a>
             </div>
           </div>
         ))}
         {apps.length === 0 && (
-          <p className="text-sm text-muted-foreground">Chưa có đơn nào.</p>
+          <p className="text-sm text-muted-foreground">
+            You haven&apos;t applied to any jobs yet.
+          </p>
         )}
       </div>
     </div>

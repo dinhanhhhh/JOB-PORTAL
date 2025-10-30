@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/page.tsx
+﻿// frontend/src/app/dashboard/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,19 +9,15 @@ import CustomTextarea from "@/components/ui/CustomTextarea";
 import CustomButton from "@/components/ui/CustomButton";
 import { Card } from "@/components/ui/card";
 
-function validateJobDraft(d: {
-  title: string;
-  description: string;
-  skills: string[];
-}): string | null {
+function validateJobDraft(d: { title: string; description: string; skills: string[] }): string | null {
   if (!d.title || d.title.trim().length < 3) {
-    return "Tiêu đề (title) phải có ít nhất 3 ký tự";
+    return "Title must be at least 3 characters";
   }
   if (!d.description || d.description.trim().length < 20) {
-    return "Mô tả (description) phải có ít nhất 20 ký tự";
+    return "Description must be at least 20 characters";
   }
   if (!Array.isArray(d.skills) || d.skills.length === 0) {
-    return "Cần ít nhất 1 kỹ năng (skills)";
+    return "Please add at least one skill";
   }
   return null;
 }
@@ -41,15 +37,10 @@ export default function DashboardPage() {
   const submit = async () => {
     const skillArr = skills
       .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+      .map((skill) => skill.trim())
+      .filter((skill) => skill.length > 0);
 
-    const draft = {
-      title,
-      description,
-      skills: skillArr,
-    };
-    const message = validateJobDraft(draft);
+    const message = validateJobDraft({ title, description, skills: skillArr });
     if (message) {
       alert(message);
       return;
@@ -69,14 +60,14 @@ export default function DashboardPage() {
         level,
         type,
       });
-      alert("Tạo job thành công!");
-    } catch (e) {
-      console.error(e);
-      const msg = (e as Error).message || "";
+      alert("Job created successfully!");
+    } catch (error) {
+      console.error(error);
+      const msg = (error as Error).message || "";
       if (msg.includes("Please create a company profile first")) {
-        alert("Bạn cần tạo Company trước khi đăng Job: vào /company để tạo.");
+        alert("Create your company profile at /company before posting jobs.");
       } else {
-        alert(`Tạo job lỗi: ${msg}`);
+        alert(`Failed to create job: ${msg}`);
       }
     } finally {
       setLoading(false);
@@ -84,109 +75,101 @@ export default function DashboardPage() {
   };
 
   return (
-    <Card>
-      <h1 className="text-xl font-semibold mb-4">
-        Employer Dashboard — Tạo Job
-      </h1>
-      <div className="space-y-3">
-        <CustomInput
-          label="Tiêu đề"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <CustomTextarea
-          label="Mô tả (≥ 20 ký tự)"
-          rows={5}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <CustomInput
-          label="Kỹ năng (phân tách bởi dấu phẩy)"
-          value={skills}
-          onChange={(e) => setSkills(e.target.value)}
-        />
-        <div>
-          <label className="text-sm">Cấp độ</label>
+    <Card className="interactive-panel space-y-4 p-6">
+      <h1 className="text-xl font-semibold">Employer Dashboard – Create Job</h1>
+      <CustomInput
+        label="Title"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+      />
+      <CustomTextarea
+        label="Description (>= 20 characters)"
+        rows={5}
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
+      />
+      <CustomInput
+        label="Skills (comma separated)"
+        value={skills}
+        onChange={(event) => setSkills(event.target.value)}
+      />
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Level</label>
           <select
-            className="border rounded px-3 py-2 ml-2"
+            className="h-9 w-full rounded-md border border-border/40 bg-background/70 px-3 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
             value={level}
-            onChange={(e) => setLevel(e.target.value as JobLevel)}
+            onChange={(event) => setLevel(event.target.value as JobLevel)}
           >
-            {["entry", "mid", "senior", "lead", "executive"].map((l) => (
-              <option key={l} value={l}>
-                {l}
+            {["entry", "mid", "senior", "lead", "executive"].map((item) => (
+              <option key={item} value={item}>
+                {item}
               </option>
             ))}
           </select>
         </div>
-        <div>
-          <label className="text-sm">Loại công việc</label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Job type</label>
           <select
-            className="border rounded px-3 py-2 ml-2"
+            className="h-9 w-full rounded-md border border-border/40 bg-background/70 px-3 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
             value={type}
-            onChange={(e) => setType(e.target.value as JobType)}
+            onChange={(event) => setType(event.target.value as JobType)}
           >
-            {[
-              "full-time",
-              "part-time",
-              "contract",
-              "internship",
-              "freelance",
-            ].map((t) => (
-              <option key={t} value={t}>
-                {t}
+            {["full-time", "part-time", "contract", "internship", "freelance"].map((item) => (
+              <option key={item} value={item}>
+                {item}
               </option>
             ))}
           </select>
         </div>
-        <CustomInput
-          label="Location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
-        <div className="flex items-center gap-2">
-          <input
-            id="remote"
-            type="checkbox"
-            checked={isRemote}
-            onChange={(e) => setIsRemote(e.target.checked)}
-          />
-          <label htmlFor="remote" className="text-sm">
-            Remote
-          </label>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <CustomInput
-            type="number"
-            label="Salary Min"
-            value={salaryMin ?? 0}
-            onChange={(e) =>
-              setSalaryMin(
-                Number.isFinite(+e.target.value) ? +e.target.value : undefined
-              )
-            }
-          />
-          <CustomInput
-            type="number"
-            label="Salary Max"
-            value={salaryMax ?? 0}
-            onChange={(e) =>
-              setSalaryMax(
-                Number.isFinite(+e.target.value) ? +e.target.value : undefined
-              )
-            }
-          />
-        </div>
-
-        <CustomButton onClick={submit} loading={loading} disabled={loading}>
-          Tạo Job
-        </CustomButton>
-        <p className="text-xs text-muted-foreground">
-          Lưu ý: Cần có Company trước khi đăng Job. Nếu gặp lỗi “Please create a
-          company profile first”, hãy vào trang <code>/company</code> để tạo.
-        </p>
       </div>
+      <CustomInput
+        label="Location"
+        value={location}
+        onChange={(event) => setLocation(event.target.value)}
+      />
+      <div className="flex items-center gap-2 text-sm">
+        <input
+          id="remote"
+          type="checkbox"
+          checked={isRemote}
+          onChange={(event) => setIsRemote(event.target.checked)}
+          className="h-4 w-4 rounded border-border/60 bg-background/60"
+        />
+        <label htmlFor="remote">Remote</label>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <CustomInput
+          type="number"
+          label="Salary Min"
+          value={salaryMin ?? ""}
+          onChange={(event) =>
+            setSalaryMin(
+              Number.isFinite(+event.target.value) ? +event.target.value : undefined
+            )
+          }
+        />
+        <CustomInput
+          type="number"
+          label="Salary Max"
+          value={salaryMax ?? ""}
+          onChange={(event) =>
+            setSalaryMax(
+              Number.isFinite(+event.target.value) ? +event.target.value : undefined
+            )
+          }
+        />
+      </div>
+
+      <CustomButton onClick={submit} loading={loading} disabled={loading}>
+        Create job
+      </CustomButton>
+      <p className="text-xs text-muted-foreground">
+        Tip: You need a company profile before posting jobs. If you see the message
+        &quot;Please create a company profile first&quot;, head over to <code>/company</code> to create it.
+      </p>
     </Card>
   );
 }
+
 

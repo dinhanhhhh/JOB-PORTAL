@@ -113,24 +113,38 @@ function UsersTab() {
 
   if (loading) return <p>Loading...</p>;
   return (
-    <div className="border rounded p-3 overflow-auto">
-      <table className="w-full text-sm">
+    <div className="interactive-panel fade-up-soft overflow-hidden p-4">
+      <table className="w-full text-sm border-separate border-spacing-y-2">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Active</th>
-            <th>Actions</th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Name
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Email
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Role
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Active
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((user) => (
-            <tr key={user._id} className="border-t">
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>
+            <tr
+              key={user._id}
+              className="rounded-lg border border-border/30 bg-card/90 transition-colors duration-200 hover:bg-primary/5"
+            >
+              <td className="px-3 py-3 font-medium">{user.name}</td>
+              <td className="px-3 py-3">{user.email}</td>
+              <td className="px-3 py-3">
                 <select
+                  className="w-full rounded-md border border-border/40 bg-background/70 px-2 py-2 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
                   value={user.role}
                   onChange={(event) => setRole(user._id, event.target.value as Role)}
                 >
@@ -141,10 +155,10 @@ function UsersTab() {
                   ))}
                 </select>
               </td>
-              <td>{user.isActive ? "Yes" : "No"}</td>
-              <td>
+              <td className="px-3 py-3">{user.isActive ? "Yes" : "No"}</td>
+              <td className="px-3 py-3 text-right">
                 <button
-                  className="px-2 py-1 border rounded"
+                  className="interactive-button px-3 py-1 text-xs font-semibold uppercase tracking-wide"
                   onClick={() => toggleActive(user)}
                 >
                   {user.isActive ? "Deactivate" : "Activate"}
@@ -176,25 +190,36 @@ function JobsTab() {
 
   if (loading) return <p>Loading...</p>;
   return (
-    <div className="border rounded p-3 overflow-auto">
-      <table className="w-full text-sm">
+    <div className="interactive-panel fade-up-soft overflow-hidden p-4">
+      <table className="w-full text-sm border-separate border-spacing-y-2">
         <thead>
           <tr>
-            <th>Title</th>
-            <th>Company</th>
-            <th>Employer</th>
-            <th>Actions</th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Title
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Company
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Employer
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((job) => (
-            <tr key={job._id} className="border-t">
-              <td>{job.title}</td>
-              <td>{job.company?.name ?? "-"}</td>
-              <td>{job.employer?.email ?? "-"}</td>
-              <td>
+            <tr
+              key={job._id}
+              className="rounded-lg border border-border/30 bg-card/90 transition-colors duration-200 hover:bg-primary/5"
+            >
+              <td className="px-3 py-3 font-medium">{job.title}</td>
+              <td className="px-3 py-3">{job.company?.name ?? "-"}</td>
+              <td className="px-3 py-3">{job.employer?.email ?? "-"}</td>
+              <td className="px-3 py-3 text-right">
                 <button
-                  className="px-2 py-1 border rounded"
+                  className="interactive-button px-3 py-1 text-xs font-semibold uppercase tracking-wide"
                   onClick={() => remove(job._id)}
                 >
                   Delete
@@ -226,25 +251,36 @@ function CompaniesTab() {
 
   if (loading) return <p>Loading...</p>;
   return (
-    <div className="border rounded p-3 overflow-auto">
-      <table className="w-full text-sm">
+    <div className="interactive-panel fade-up-soft overflow-hidden p-4">
+      <table className="w-full text-sm border-separate border-spacing-y-2">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Website</th>
-            <th>Owner</th>
-            <th>Actions</th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Name
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Website
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Owner
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((company) => (
-            <tr key={company._id} className="border-t">
-              <td>{company.name}</td>
-              <td>{company.website ?? "-"}</td>
-              <td>{company.owner?.email ?? "-"}</td>
-              <td>
+            <tr
+              key={company._id}
+              className="rounded-lg border border-border/30 bg-card/90 transition-colors duration-200 hover:bg-primary/5"
+            >
+              <td className="px-3 py-3 font-medium">{company.name}</td>
+              <td className="px-3 py-3">{company.website ?? "-"}</td>
+              <td className="px-3 py-3">{company.owner?.email ?? "-"}</td>
+              <td className="px-3 py-3 text-right">
                 <button
-                  className="px-2 py-1 border rounded"
+                  className="interactive-button px-3 py-1 text-xs font-semibold uppercase tracking-wide"
                   onClick={() => remove(company._id)}
                 >
                   Delete
@@ -284,25 +320,39 @@ function ApplicationsTab() {
 
   if (loading) return <p>Loading...</p>;
   return (
-    <div className="border rounded p-3 overflow-auto">
-      <table className="w-full text-sm">
+    <div className="interactive-panel fade-up-soft overflow-hidden p-4">
+      <table className="w-full text-sm border-separate border-spacing-y-2">
         <thead>
           <tr>
-            <th>Job</th>
-            <th>Company</th>
-            <th>Seeker</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Job
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Company
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Seeker
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Status
+            </th>
+            <th className="text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((application) => (
-            <tr key={application._id} className="border-t">
-              <td>{application.job?.title ?? "-"}</td>
-              <td>{application.job?.company?.name ?? "-"}</td>
-              <td>{application.seeker?.email ?? "-"}</td>
-              <td>
+            <tr
+              key={application._id}
+              className="rounded-lg border border-border/30 bg-card/90 transition-colors duration-200 hover:bg-primary/5"
+            >
+              <td className="px-3 py-3 font-medium">{application.job?.title ?? "-"}</td>
+              <td className="px-3 py-3">{application.job?.company?.name ?? "-"}</td>
+              <td className="px-3 py-3">{application.seeker?.email ?? "-"}</td>
+              <td className="px-3 py-3">
                 <select
+                  className="w-full rounded-md border border-border/40 bg-background/70 px-2 py-2 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
                   value={application.status}
                   onChange={(event) =>
                     setStatus(application._id, event.target.value as AppStatus)
@@ -317,9 +367,9 @@ function ApplicationsTab() {
                   )}
                 </select>
               </td>
-              <td>
+              <td className="px-3 py-3 text-right">
                 <button
-                  className="px-2 py-1 border rounded"
+                  className="interactive-button px-3 py-1 text-xs font-semibold uppercase tracking-wide"
                   onClick={() => remove(application._id)}
                 >
                   Delete

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { cn } from "@/lib/utils";
 
 // Load ThemeToggle on client only to avoid SSR hydration mismatch
 const ThemeToggle = dynamic(() => import("@/components/ui/ThemeToggle"), {
@@ -14,15 +15,18 @@ export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
   const linkClass = (href: string) =>
-    (href === "/" ? pathname === "/" : pathname.startsWith(href))
-      ? "text-primary font-medium"
-      : "text-foreground/80 hover:text-primary";
+    cn(
+      "interactive-link text-sm",
+      (href === "/" ? pathname === "/" : pathname.startsWith(href))
+        ? "interactive-link-active font-semibold"
+        : "text-foreground/80"
+    );
 
   return (
     <nav className="w-full bg-background border-b">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between text-foreground">
         {/* Logo */}
-        <Link href="/" className="font-semibold">
+        <Link href="/" className="interactive-link text-lg font-semibold interactive-link-active">
           JobPortal
         </Link>
 
@@ -67,16 +71,20 @@ export default function Navbar() {
                   {user.role}
                 </span>
               </span>
-              <button className="text-sm text-destructive" onClick={logout}>
+              <button
+                type="button"
+                className="interactive-link text-sm text-destructive"
+                onClick={logout}
+              >
                 Logout
               </button>
             </div>
           ) : (
             <>
-              <Link href="/login" className="text-sm">
+              <Link href="/login" className="interactive-link text-sm text-foreground/80">
                 Login
               </Link>
-              <Link href="/register" className="text-sm">
+              <Link href="/register" className="interactive-link text-sm text-primary">
                 Register
               </Link>
             </>

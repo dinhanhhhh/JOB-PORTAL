@@ -123,3 +123,191 @@
   p { @apply text-base; }
   small { @apply text-xs; }
 }
+
+@keyframes fadeUpSoft {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes cardGlow {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(180deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes floatSoft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@layer utilities {
+  .fade-up-soft {
+    animation: fadeUpSoft 0.55s both;
+  }
+
+  .hover-rise {
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+  }
+  .hover-rise:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 35px -22px oklch(var(--primary) / 0.4);
+  }
+
+  .interactive-card {
+    @apply relative overflow-hidden rounded-xl border border-border/60 bg-card/90 backdrop-blur-sm;
+  }
+  .interactive-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 160%;
+    height: 160%;
+    left: 50%;
+    top: 50%;
+    pointer-events: none;
+    background: conic-gradient(
+      from 0deg,
+      oklch(var(--primary) / 0.35),
+      transparent 45%,
+      oklch(var(--accent) / 0.25),
+      transparent 85%
+    );
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    mix-blend-mode: screen;
+    animation: cardGlow 14s linear infinite;
+  }
+  .interactive-card::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: calc(var(--radius-lg));
+    background: linear-gradient(
+      150deg,
+      oklch(var(--card) / 0.85),
+      oklch(var(--card) / 0.78)
+    );
+    transition: background 0.45s ease;
+    z-index: 0;
+  }
+  .interactive-card:hover::before {
+    opacity: 0.65;
+  }
+  .interactive-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  .interactive-card:hover::after {
+    background: linear-gradient(
+      160deg,
+      oklch(var(--card) / 0.92),
+      oklch(var(--accent) / 0.24)
+    );
+  }
+
+  .interactive-panel {
+    @apply relative overflow-hidden border border-border/40 rounded-2xl bg-card/80 backdrop-blur-md;
+  }
+  .interactive-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(
+      circle at top,
+      oklch(var(--primary) / 0.12),
+      transparent 65%
+    );
+    transition: opacity 0.4s ease;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+  .interactive-panel:hover::before {
+    opacity: 1;
+  }
+
+  .floating-blob {
+    position: absolute;
+    filter: blur(60px);
+    opacity: 0.55;
+    animation: floatSoft 12s ease-in-out infinite;
+  }
+
+  .interactive-button {
+    @apply relative overflow-hidden bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground shadow-[0_10px_30px_-18px] shadow-primary/80 transition duration-300 ease-out;
+  }
+  .interactive-button::before {
+    content: "";
+    position: absolute;
+    inset: -50% 0;
+    background: linear-gradient(
+      120deg,
+      transparent,
+      oklch(var(--primary-foreground) / 0.45),
+      transparent
+    );
+    transform: translateX(-100%) rotate(12deg);
+    transition: transform 0.6s ease;
+  }
+  .interactive-button:hover::before {
+    transform: translateX(120%) rotate(12deg);
+  }
+  .interactive-button:hover {
+    @apply shadow-[0_18px_40px_-22px] shadow-primary;
+  }
+
+  .interactive-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: color 0.3s ease;
+  }
+  .interactive-link::after {
+    content: "";
+    position: absolute;
+    inset-x: 0;
+    bottom: -0.25rem;
+    height: 1.5px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      oklch(var(--primary) / 0),
+      oklch(var(--primary) / 0.8),
+      oklch(var(--primary) / 0)
+    );
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.35s ease, opacity 0.35s ease;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  .interactive-link:hover::after,
+  .interactive-link-active::after {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  .interactive-link:hover,
+  .interactive-link-active {
+    color: oklch(var(--primary));
+  }
+}

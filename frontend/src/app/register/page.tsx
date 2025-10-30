@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import CustomButton from "@/components/ui/CustomButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -52,12 +53,15 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background text-foreground px-4 py-10">
-      <Card className="w-full max-w-md rounded-2xl border p-8 shadow-lg backdrop-blur">
-        <div className="text-center mb-6">
-          <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+      <Card className="w-full max-w-md space-y-6 rounded-2xl border p-8 shadow-lg backdrop-blur">
+        <div className="text-center space-y-2">
+          <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
             <span className="text-xl">~</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
+          <p className="text-sm text-muted-foreground">
+            Start discovering curated roles tailored to your ambition.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -80,7 +84,7 @@ export default function RegisterPage() {
             <Label htmlFor="role">Role</Label>
             <select
               id="role"
-              className="h-9 w-full rounded-md border border-slate-700 bg-slate-900/40 px-3 text-sm"
+              className="h-9 w-full rounded-md border border-border/40 bg-background/70 px-3 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
               {...register("role")}
             >
               <option className="bg-slate-900" value="seeker">
@@ -91,18 +95,23 @@ export default function RegisterPage() {
               </option>
             </select>
             <p className="text-xs text-muted-foreground">
-              Selected: <b>{role}</b>
+              Selected role: <b>{role}</b>
             </p>
             {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
           </div>
 
-          <Button className="w-full" disabled={isSubmitting}>
+          <CustomButton
+            type="submit"
+            className="w-full"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Creating..." : "Sign up"}
-          </Button>
+          </CustomButton>
 
           <div className="relative my-2">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-800" />
+              <span className="w-full border-t border-border/60" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
@@ -139,9 +148,13 @@ export default function RegisterPage() {
           </Button>
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account? <Link href="/login" className="text-primary hover:text-primary/90">Sign in</Link>
+          Already have an account?{" "}
+          <Link href="/login" className="interactive-link text-primary">
+            Sign in
+          </Link>
         </p>
       </Card>
     </div>
   );
 }
+

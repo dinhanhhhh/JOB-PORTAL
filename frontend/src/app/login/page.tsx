@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import CustomButton from "@/components/ui/CustomButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -40,16 +41,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background text-foreground px-4 py-10">
-      <Card className="w-full max-w-md rounded-2xl border p-8 shadow-lg backdrop-blur">
-        <div className="text-center mb-6">
-          <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+      <Card className="w-full max-w-md space-y-6 rounded-2xl border p-8 shadow-lg backdrop-blur">
+        <div className="text-center space-y-2">
+          <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
             <span className="text-xl">~</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Sign in to your account</h1>
+          <p className="text-sm text-muted-foreground">Welcome back! We&apos;re excited to see you.</p>
         </div>
 
         {user ? (
-          <p className="text-sm text-muted-foreground">Redirecting…</p>
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
@@ -66,19 +68,29 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between text-sm">
               <label className="inline-flex items-center gap-2">
-                <input type="checkbox" className="h-4 w-4 rounded border-slate-700 bg-slate-900/40" />
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border/60 bg-background/60"
+                />
                 Remember me
               </label>
-              <a className="text-primary hover:text-primary/90" href="#">Forgot password?</a>
+              <a className="interactive-link text-primary text-sm" href="#">
+                Forgot password?
+              </a>
             </div>
 
-            <Button className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in…" : "Sign in"}
-            </Button>
+            <CustomButton
+              type="submit"
+              className="w-full"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Signing in..." : "Sign in"}
+            </CustomButton>
 
             <div className="relative my-2">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-800" />
+                <span className="w-full border-t border-border/60" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
@@ -105,10 +117,13 @@ export default function LoginPage() {
           </form>
         )}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Don’t have an account?{' '}
-          <Link href="/register" className="text-primary hover:text-primary/90">Sign up</Link>
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="interactive-link text-primary">
+            Sign up
+          </Link>
         </p>
       </Card>
     </div>
   );
 }
+
