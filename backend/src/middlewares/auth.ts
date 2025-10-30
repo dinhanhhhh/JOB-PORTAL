@@ -7,6 +7,7 @@ import {
 } from "../utils/jwt";
 import type { UserRole } from "../types/common";
 import User, { type IUser } from "../models/User";
+import { setAuthCookies, clearAuthCookies } from "../utils/cookies";
 
 export type AuthenticatedUser = { _id: string; role: UserRole };
 
@@ -16,24 +17,6 @@ declare global {
       authenticatedUser?: AuthenticatedUser;
     }
   }
-}
-
-// This helper function is similar to the one in the controller.
-// For a larger app, it could be moved to a shared utility file.
-function setAuthCookies(res: Response, access: string, refresh: string): void {
-  const isProd = process.env.NODE_ENV === "production" || (process.env.COOKIE_SECURE ?? "false") === "true";
-  res.cookie("access_token", access, {
-    httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
-    path: "/",
-  });
-  res.cookie("refresh_token", refresh, {
-    httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
-    path: "/",
-  });
 }
 
 export async function requireAuth(
@@ -76,7 +59,7 @@ export async function requireAuth(
     const newRefreshToken = signRefreshToken(userId, user.role); // Rotate refresh token
 
     // Set new tokens in cookies
-    setAuthCookies(res, newAccessToken, newRefreshToken);
+    setAuthCookies(res, { access: newAccessToken, refresh: newRefreshToken });
 
     // Attach user to request and proceed
     req.authenticatedUser = {
@@ -86,8 +69,7 @@ export async function requireAuth(
     next();
   } catch (err) {
     // Clear potentially invalid cookies and fail
-    res.clearCookie("access_token", { path: "/" });
-    res.clearCookie("refresh_token", { path: "/" });
+    clearAuthCookies(res);
     res.status(401).json({ message: "Unauthorized: Invalid refresh token" });
   }
 }

@@ -5,8 +5,11 @@ export async function me(): Promise<User | null> {
   try {
     const data = await apiGet<MeResponse>("/auth/me");
     return data.user;
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error && /\[401\]/.test(error.message)) {
+      return null;
+    }
+    throw error;
   }
 }
 

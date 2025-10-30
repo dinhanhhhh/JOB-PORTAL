@@ -7,6 +7,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../utils/jwt";
+import { setAuthCookies, clearAuthCookies } from "../utils/cookies";
 
 // ===============================================
 // ZOD VALIDATION SCHEMAS
@@ -36,32 +37,6 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 type LoginDto = z.infer<typeof loginSchema>;
-
-// ===============================================
-// HELPER FUNCTIONS
-// ===============================================
-
-/**
- * Helper: Set access và refresh tokens vào httpOnly cookies
- */
-function setAuthCookies(res: Response, access: string, refresh: string): void {
-  const isProd = process.env.NODE_ENV === "production";
-  res.cookie("access_token", access, {
-    httpOnly: true,
-    sameSite: isProd ? "none" : "lax", // 🔥 cho phép gửi cookie cross-domain
-    secure: isProd, // 🔥 bắt buộc true khi sameSite = none
-    path: "/",
-    maxAge: 15 * 60 * 1000, // 15 phút
-  });
-
-  res.cookie("refresh_token", refresh, {
-    httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
-    path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-  });
-}
 
 // ===============================================
 // AUTHENTICATION CONTROLLERS
@@ -105,7 +80,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     // Tạo JWT tokens
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
-    setAuthCookies(res, access, refresh);
+    setAuthCookies(res, { access, refresh });
 
     // Return user info
     res.status(201).json({
@@ -174,7 +149,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     // Tạo JWT tokens
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
-    setAuthCookies(res, access, refresh);
+    setAuthCookies(res, { access, refresh });
 
     // Return user info
     res.json({
@@ -253,7 +228,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
     // Tạo tokens mới
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
-    setAuthCookies(res, access, refresh);
+    setAuthCookies(res, { access, refresh });
 
     res.json({ ok: true });
   } catch (error) {
@@ -267,20 +242,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
  * Đăng xuất (xóa cookies)
  */
 export async function logout(_req: Request, res: Response): Promise<void> {
-  // Nên tạo biến isProd giống như lúc set cookie
-  const isProd = process.env.NODE_ENV === "production";
-  res.clearCookie("access_token", {
-    httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
-    path: "/",
-  });
-  res.clearCookie("refresh_token", {
-    httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
-    path: "/",
-  });
+  clearAuthCookies(res);
   res.json({ ok: true });
 }
 
@@ -308,26 +270,8 @@ export async function googleCallback(
     const access = signAccessToken(userId, user.role);
     const refresh = signRefreshToken(userId, user.role);
 
-    // Set tokens vào httpOnly cookies
-    // secure được suy ra theo NODE_ENV ngay ở cấu hình cookie bên dưới
+    setAuthCookies(res, { access, refresh });
 
-    res.cookie("access_token", access, {
-      httpOnly: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 15 * 60 * 1000, // 15 phút
-    });
-
-    res.cookie("refresh_token", refresh, {
-      httpOnly: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-    });
-
-    // ✅ REDIRECT DỰA TRÊN ROLE
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     let redirectPath: string;
 

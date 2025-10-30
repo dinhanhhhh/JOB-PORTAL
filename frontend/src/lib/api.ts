@@ -1,30 +1,31 @@
-// frontend/src/lib/api.ts
 import axios, {
   AxiosError,
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from "axios";
 
+type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+type QueueEntry = {
+  resolve: () => void;
+  reject: (error: unknown) => void;
+};
+
 let apiInstance: AxiosInstance | null = null;
 let isRefreshing = false;
-let pendingQueue: Array<() => void> = [];
+let pendingQueue: QueueEntry[] = [];
+
+const FALLBACK_BASE_URL = "http://localhost:4000";
 
 export function getApiBase(): string {
-  const base =
-    process.env.NEXT_PUBLIC_API_URL || "https://backend-ygiu.onrender.com";
-  console.log("getApiBase() returning:", base);
-  return base;
+  return process.env.NEXT_PUBLIC_API_URL?.trim() || FALLBACK_BASE_URL;
 }
 
 // Ensure exactly one "/api" suffix regardless of env value
 export function getApiBaseApi(): string {
-  const base = (
-    process.env.NEXT_PUBLIC_API_URL || "https://backend-ygiu.onrender.com"
-  ).replace(/\/+$/, "");
+  const base = getApiBase().replace(/\/+$/, "");
   return base.endsWith("/api") ? base : `${base}/api`;
 }
 
-// ---- SỬA: bóc lỗi chi tiết từ Zod flatten() ----
 type ZodFlatten = {
   fieldErrors?: Record<string, string[]>;
   formErrors?: string[];
@@ -34,17 +35,15 @@ function extractErrorMessage(err: unknown): string {
   const ax = err as AxiosError;
   const data = ax.response?.data as unknown;
 
-  // BE có thể trả string hoặc object
   if (typeof data === "string") return data;
 
   if (data && typeof data === "object") {
-    // @ts-expect-error safe drill các dạng phổ biến
+    // @ts-expect-error safe drill common response shapes
     if (typeof data.message === "string" && !data.errors) return data.message;
 
-    // @ts-expect-error safe drill: dạng { message: "Validation error", errors: { fieldErrors, formErrors } }
+    // @ts-expect-error safe drill: { message, errors } pattern
     const errors: ZodFlatten | undefined = data.errors;
     if (errors && typeof errors === "object") {
-      // Ưu tiên fieldErrors
       const fe = errors.fieldErrors ?? {};
       for (const key of Object.keys(fe)) {
         const msgs = fe[key];
@@ -52,15 +51,14 @@ function extractErrorMessage(err: unknown): string {
           return `${key}: ${msgs[0]}`;
         }
       }
-      // Rồi tới formErrors
       if (Array.isArray(errors.formErrors) && errors.formErrors.length > 0) {
         return errors.formErrors[0];
       }
     }
 
-    // @ts-expect-error: một số BE trả { error: string }
+    // @ts-expect-error: normalize legacy error payloads
     if (typeof data.error === "string") return data.error;
-    // @ts-expect-error: fallback message
+    // @ts-expect-error: normalize legacy error payloads
     if (typeof data.message === "string") return data.message;
   }
 
@@ -81,14 +79,11 @@ function createApi(): AxiosInstance {
   instance.interceptors.response.use(
     (res) => res,
     async (error: AxiosError) => {
-      const original = error.config as
-        | (InternalAxiosRequestConfig & { _retry?: boolean })
-        | undefined;
+      const original = error.config as RetryConfig | undefined;
       const status = error.response?.status ?? 0;
 
-      // Log lỗi rõ ràng (chỉ trong development)
       if (process.env.NODE_ENV === "development") {
-        console.error("🚨 API Error:", {
+        console.error("[api] request error", {
           url: error.config?.url,
           method: (error.config?.method || "get").toUpperCase(),
           status,
@@ -98,21 +93,30 @@ function createApi(): AxiosInstance {
 
       if (status === 401 && original && !original._retry) {
         if (isRefreshing) {
-          await new Promise<void>((resolve) => pendingQueue.push(resolve));
-          return getApi()(original);
+          return new Promise((resolve, reject) => {
+            pendingQueue.push({
+              resolve: () => resolve(getApi()(original)),
+              reject,
+            });
+          });
         }
+
         original._retry = true;
         isRefreshing = true;
+
         try {
           await axios.post(
             `${getApiBaseApi()}/auth/refresh`,
             {},
             { withCredentials: true }
           );
-          pendingQueue.forEach((fn) => fn());
-          pendingQueue = [];
+          pendingQueue.forEach(({ resolve }) => resolve());
           return getApi()(original);
+        } catch (refreshError) {
+          pendingQueue.forEach(({ reject }) => reject(refreshError));
+          throw refreshError;
         } finally {
+          pendingQueue = [];
           isRefreshing = false;
         }
       }
@@ -137,6 +141,7 @@ export async function apiGet<T>(url: string): Promise<T> {
   const res = await getApi().get<T>(url);
   return res.data;
 }
+
 export async function apiPost<T, B extends object>(
   url: string,
   body: B
@@ -144,6 +149,7 @@ export async function apiPost<T, B extends object>(
   const res = await getApi().post<T>(url, body);
   return res.data;
 }
+
 export async function apiPut<T, B extends object>(
   url: string,
   body: B
@@ -151,7 +157,7 @@ export async function apiPut<T, B extends object>(
   const res = await getApi().put<T>(url, body);
   return res.data;
 }
-// frontend/src/lib/api.ts (bổ sung 2 hàm)
+
 export async function apiPatch<T, B extends object>(
   url: string,
   body: B
@@ -159,6 +165,7 @@ export async function apiPatch<T, B extends object>(
   const res = await getApi().patch<T>(url, body);
   return res.data;
 }
+
 export async function apiDelete<T>(url: string): Promise<T> {
   const res = await getApi().delete<T>(url);
   return res.data;

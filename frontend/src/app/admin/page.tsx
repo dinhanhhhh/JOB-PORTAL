@@ -1,7 +1,6 @@
-// frontend/src/app/admin/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   adminGetUsers,
   adminUpdateUser,
@@ -21,6 +20,45 @@ import {
 } from "@/lib/admin";
 
 type TabKey = "users" | "jobs" | "companies" | "applications";
+
+type UseAdminListResult<T> = {
+  rows: T[];
+  loading: boolean;
+  refresh: (showLoader?: boolean) => Promise<void>;
+};
+
+function useAdminList<T>(fetcher: () => Promise<T[]>): UseAdminListResult<T> {
+  const [rows, setRows] = useState<T[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const refresh = useCallback(
+    async (showLoader = false) => {
+      if (showLoader) setLoading(true);
+      try {
+        const data = await fetcher();
+        if (!isMounted.current) return;
+        setRows(data);
+      } finally {
+        if (isMounted.current) setLoading(false);
+      }
+    },
+    [fetcher]
+  );
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return { rows, loading, refresh };
+}
 
 export default function AdminPage() {
   const [tab, setTab] = useState<TabKey>("users");
@@ -51,28 +89,27 @@ export default function AdminPage() {
 }
 
 function UsersTab() {
-  const [rows, setRows] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetcher = useCallback(async () => {
     const res = await adminGetUsers({ page: 1, limit: 20 });
-    setRows(res.data);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
+    return res.data;
   }, []);
+  const { rows, loading, refresh } = useAdminList<AdminUser>(fetcher);
 
-  const setRole = async (id: string, role: Role) => {
-    await adminUpdateUser(id, { role });
-    await fetchData();
-  };
-  const toggleActive = async (u: AdminUser) => {
-    await adminUpdateUser(u._id, { isActive: !u.isActive });
-    await fetchData();
-  };
+  const setRole = useCallback(
+    async (id: string, role: Role) => {
+      await adminUpdateUser(id, { role });
+      await refresh(true);
+    },
+    [refresh]
+  );
+
+  const toggleActive = useCallback(
+    async (user: AdminUser) => {
+      await adminUpdateUser(user._id, { isActive: !user.isActive });
+      await refresh(true);
+    },
+    [refresh]
+  );
 
   if (loading) return <p>Loading...</p>;
   return (
@@ -88,29 +125,29 @@ function UsersTab() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((u) => (
-            <tr key={u._id} className="border-t">
-              <td>{u.name}</td>
-              <td>{u.email}</td>
+          {rows.map((user) => (
+            <tr key={user._id} className="border-t">
+              <td>{user.name}</td>
+              <td>{user.email}</td>
               <td>
                 <select
-                  value={u.role}
-                  onChange={(e) => setRole(u._id, e.target.value as Role)}
+                  value={user.role}
+                  onChange={(event) => setRole(user._id, event.target.value as Role)}
                 >
-                  {["seeker", "employer", "admin"].map((r) => (
-                    <option key={r} value={r}>
-                      {r}
+                  {(["seeker", "employer", "admin"] as const).map((role) => (
+                    <option key={role} value={role}>
+                      {role}
                     </option>
                   ))}
                 </select>
               </td>
-              <td>{u.isActive ? "Yes" : "No"}</td>
+              <td>{user.isActive ? "Yes" : "No"}</td>
               <td>
                 <button
                   className="px-2 py-1 border rounded"
-                  onClick={() => toggleActive(u)}
+                  onClick={() => toggleActive(user)}
                 >
-                  {u.isActive ? "Deactivate" : "Activate"}
+                  {user.isActive ? "Deactivate" : "Activate"}
                 </button>
               </td>
             </tr>
@@ -122,24 +159,20 @@ function UsersTab() {
 }
 
 function JobsTab() {
-  const [rows, setRows] = useState<AdminJob[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetcher = useCallback(async () => {
     const res = await adminGetJobs({ page: 1, limit: 20 });
-    setRows(res.data);
-    setLoading(false);
-  };
-  useEffect(() => {
-    fetchData();
+    return res.data;
   }, []);
+  const { rows, loading, refresh } = useAdminList<AdminJob>(fetcher);
 
-  const remove = async (id: string) => {
-    if (!confirm("Xóa job này và toàn bộ applications liên quan?")) return;
-    await adminDeleteJob(id);
-    await fetchData();
-  };
+  const remove = useCallback(
+    async (id: string) => {
+      if (!confirm("Delete this job?")) return;
+      await adminDeleteJob(id);
+      await refresh(true);
+    },
+    [refresh]
+  );
 
   if (loading) return <p>Loading...</p>;
   return (
@@ -154,15 +187,15 @@ function JobsTab() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((j) => (
-            <tr key={j._id} className="border-t">
-              <td>{j.title}</td>
-              <td>{j.company?.name ?? "-"}</td>
-              <td>{j.employer?.email ?? "-"}</td>
+          {rows.map((job) => (
+            <tr key={job._id} className="border-t">
+              <td>{job.title}</td>
+              <td>{job.company?.name ?? "-"}</td>
+              <td>{job.employer?.email ?? "-"}</td>
               <td>
                 <button
                   className="px-2 py-1 border rounded"
-                  onClick={() => remove(j._id)}
+                  onClick={() => remove(job._id)}
                 >
                   Delete
                 </button>
@@ -176,25 +209,20 @@ function JobsTab() {
 }
 
 function CompaniesTab() {
-  const [rows, setRows] = useState<AdminCompany[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetcher = useCallback(async () => {
     const res = await adminGetCompanies({ page: 1, limit: 20 });
-    setRows(res.data);
-    setLoading(false);
-  };
-  useEffect(() => {
-    fetchData();
+    return res.data;
   }, []);
+  const { rows, loading, refresh } = useAdminList<AdminCompany>(fetcher);
 
-  const remove = async (id: string) => {
-    if (!confirm("Xóa công ty này và toàn bộ jobs/applications liên quan?"))
-      return;
-    await adminDeleteCompany(id);
-    await fetchData();
-  };
+  const remove = useCallback(
+    async (id: string) => {
+      if (!confirm("Delete this company and related jobs/applications?")) return;
+      await adminDeleteCompany(id);
+      await refresh(true);
+    },
+    [refresh]
+  );
 
   if (loading) return <p>Loading...</p>;
   return (
@@ -209,15 +237,15 @@ function CompaniesTab() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((c) => (
-            <tr key={c._id} className="border-t">
-              <td>{c.name}</td>
-              <td>{c.website ?? "-"}</td>
-              <td>{c.owner?.email ?? "-"}</td>
+          {rows.map((company) => (
+            <tr key={company._id} className="border-t">
+              <td>{company.name}</td>
+              <td>{company.website ?? "-"}</td>
+              <td>{company.owner?.email ?? "-"}</td>
               <td>
                 <button
                   className="px-2 py-1 border rounded"
-                  onClick={() => remove(c._id)}
+                  onClick={() => remove(company._id)}
                 >
                   Delete
                 </button>
@@ -231,28 +259,28 @@ function CompaniesTab() {
 }
 
 function ApplicationsTab() {
-  const [rows, setRows] = useState<AdminApplication[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetcher = useCallback(async () => {
     const res = await adminGetApplications({ page: 1, limit: 20 });
-    setRows(res.data);
-    setLoading(false);
-  };
-  useEffect(() => {
-    fetchData();
+    return res.data;
   }, []);
+  const { rows, loading, refresh } = useAdminList<AdminApplication>(fetcher);
 
-  const setStatus = async (id: string, status: AppStatus) => {
-    await adminUpdateApplicationStatus(id, status);
-    await fetchData();
-  };
-  const remove = async (id: string) => {
-    if (!confirm("Xóa application này?")) return;
-    await adminDeleteApplication(id);
-    await fetchData();
-  };
+  const setStatus = useCallback(
+    async (id: string, status: AppStatus) => {
+      await adminUpdateApplicationStatus(id, status);
+      await refresh(true);
+    },
+    [refresh]
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (!confirm("Delete this application?")) return;
+      await adminDeleteApplication(id);
+      await refresh(true);
+    },
+    [refresh]
+  );
 
   if (loading) return <p>Loading...</p>;
   return (
@@ -268,29 +296,31 @@ function ApplicationsTab() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((a) => (
-            <tr key={a._id} className="border-t">
-              <td>{a.job?.title ?? "-"}</td>
-              <td>{a.job?.company?.name ?? "-"}</td>
-              <td>{a.seeker?.email ?? "-"}</td>
+          {rows.map((application) => (
+            <tr key={application._id} className="border-t">
+              <td>{application.job?.title ?? "-"}</td>
+              <td>{application.job?.company?.name ?? "-"}</td>
+              <td>{application.seeker?.email ?? "-"}</td>
               <td>
                 <select
-                  value={a.status}
-                  onChange={(e) =>
-                    setStatus(a._id, e.target.value as AppStatus)
+                  value={application.status}
+                  onChange={(event) =>
+                    setStatus(application._id, event.target.value as AppStatus)
                   }
                 >
-                  {["submitted", "viewed", "accepted", "rejected"].map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
+                  {(["submitted", "viewed", "accepted", "rejected"] as const).map(
+                    (status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    )
+                  )}
                 </select>
               </td>
               <td>
                 <button
                   className="px-2 py-1 border rounded"
-                  onClick={() => remove(a._id)}
+                  onClick={() => remove(application._id)}
                 >
                   Delete
                 </button>
@@ -302,4 +332,3 @@ function ApplicationsTab() {
     </div>
   );
 }
-

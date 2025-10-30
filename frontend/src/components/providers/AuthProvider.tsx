@@ -44,8 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const u = await apiLogin({ email, password });
-    setUser(u);
+    try {
+      const u = await apiLogin({ email, password });
+      setUser(u);
+    } catch (error) {
+      console.error("Login failed", error);
+      throw error;
+    }
   };
 
   const register = async (
@@ -54,13 +59,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     role: "seeker" | "employer" = "seeker"
   ) => {
-    const u = await apiRegister({ name, email, password, role });
-    setUser(u);
+    try {
+      const u = await apiRegister({ name, email, password, role });
+      setUser(u);
+    } catch (error) {
+      console.error("Register failed", error);
+      throw error;
+    }
   };
 
   const logout = async () => {
-    await apiLogout();
-    setUser(null);
+    try {
+      await apiLogout();
+      setUser(null);
+    } catch (error) {
+      console.error("Logout failed", error);
+      throw error;
+    }
   };
 
   const value: AuthContextValue = {

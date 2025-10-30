@@ -1,11 +1,32 @@
 import { GoogleGenAI } from "@google/genai";
+import { env } from "../utils/env";
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is not defined in environment variables");
+let aiClient: GoogleGenAI | null = null;
+
+function getClient(): GoogleGenAI {
+  const apiKey = env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini service is not configured. Set GEMINI_API_KEY to enable AI features.");
+  }
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
 }
 
-const ai = new GoogleGenAI({ apiKey });
+async function generateContent(prompt: string): Promise<string> {
+  const client = getClient();
+  const response = await client.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  if (!response.text) {
+    throw new Error("No response from Gemini API");
+  }
+
+  return response.text;
+}
 
 /**
  * Generate cover letter using Gemini AI
@@ -43,17 +64,7 @@ Do not include placeholder text like [Your Name] or [Date].
 `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-
-    // ✅ FIX: Handle undefined case
-    if (!response.text) {
-      throw new Error("No response from Gemini API");
-    }
-
-    return response.text;
+    return await generateContent(prompt);
   } catch (error) {
     console.error("Gemini API error:", error);
     throw new Error("Failed to generate cover letter");
@@ -89,17 +100,7 @@ Use a professional and engaging tone.
 `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-
-    // ✅ FIX: Handle undefined case
-    if (!response.text) {
-      throw new Error("No response from Gemini API");
-    }
-
-    return response.text;
+    return await generateContent(prompt);
   } catch (error) {
     console.error("Gemini API error:", error);
     throw new Error("Failed to generate job description");
@@ -133,17 +134,7 @@ Keep it objective and professional.
 `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-
-    // ✅ FIX: Handle undefined case
-    if (!response.text) {
-      throw new Error("No response from Gemini API");
-    }
-
-    return response.text;
+    return await generateContent(prompt);
   } catch (error) {
     console.error("Gemini API error:", error);
     throw new Error("Failed to summarize candidate");

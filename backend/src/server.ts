@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import passport from "./config/passport";
-import { connectDB } from "./config/db";
 import { env } from "./utils/env";
 import { errorHandler } from "./middlewares/errorHandler"; // ✅ THÊM
 
@@ -25,10 +24,7 @@ app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: [
-      "https://job-portal-rosy-three.vercel.app", // ✅ FE production
-      "http://localhost:3000", // ✅ FE development
-    ],
+    origin: env.ALLOWED_ORIGINS_LIST,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -41,7 +37,7 @@ app.use(cookieParser());
 // Session configuration for Passport
 app.use(
   session({
-    secret: env.JWT_ACCESS_SECRET,
+    secret: env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -50,10 +46,10 @@ app.use(
       ttl: 14 * 24 * 60 * 60,
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production", // ✅ Tự động
+      secure: env.COOKIE_SECURE_FLAG, // ✅ Tự động
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: env.COOKIE_SECURE_FLAG ? "none" : "lax",
     },
   })
 );
@@ -78,5 +74,4 @@ app.get("/health", (_req, res) => {
 // ✅ Global error handler (PHẢI Ở CUỐI)
 app.use(errorHandler);
 
-// Connect to database
-connectDB();
+
