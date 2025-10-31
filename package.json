@@ -1,0 +1,11 @@
+{
+  "name": "job-portal-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.12.1",
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint"
+  }
+}
