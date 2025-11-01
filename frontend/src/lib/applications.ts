@@ -1,7 +1,7 @@
 // ===============================================
 // IMPORTS
 // ===============================================
-import { apiGet, apiPost } from "./api";
+import { apiGet, apiPost, apiPatch } from "./api";
 import type { MyApplicationsResponse } from "@/types";
 
 // ===============================================
@@ -208,9 +208,10 @@ export async function updateApplicationStatus(
     throw new Error("status không hợp lệ");
   }
 
-  return apiPost(`/applications/${encodeURIComponent(applicationId)}/status`, {
-    status,
-  });
+  return apiPatch<
+    { message: string; application: ApplyResult["application"] },
+    { status: "viewed" | "accepted" | "rejected" }
+  >(`/applications/${encodeURIComponent(applicationId)}/status`, { status });
 }
 
 /**

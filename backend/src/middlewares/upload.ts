@@ -78,8 +78,8 @@ export const uploadPDF = multer({
   storage,
   limits: { fileSize: MAX_SIZE },
   fileFilter: createFileFilter({
-    allowedTypes: /\.pdf$/i,
-    allowedMimes: /^application\/pdf$/,
+    allowedTypes: /\.(pdf|doc|docx)$/i,
+    allowedMimes: /^(application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document)$/i,
     precheck: (_req) => true, // Luôn được phép — ai cũng được upload CV
   }),
 }).single("resume");

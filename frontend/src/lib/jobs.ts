@@ -49,6 +49,6 @@ export async function updateJob(
 
 // THÊM MỚI: Hàm lấy jobs của employer hiện tại (endpoint: /api/jobs/employer/my-jobs)
 // Trả về JobsListResponse giống như getJobs, nhưng chỉ jobs của employer
-export async function getMyJobs(): Promise<JobsListResponse> {
-  return apiGet<JobsListResponse>("/jobs/employer/my-jobs");
+export async function getMyJobs(): Promise<{ jobs: Job[] }> {
+  return apiGet<{ jobs: Job[] }>("/jobs/employer/my-jobs");
 }

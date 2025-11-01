@@ -1,4 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
+import {
+  GoogleGenAI,
+  type Content,
+  type GenerateContentResponse,
+  type Part,
+} from "@google/genai";
 import { env } from "../utils/env";
 
 let aiClient: GoogleGenAI | null = null;
@@ -14,18 +19,58 @@ function getClient(): GoogleGenAI {
   return aiClient;
 }
 
+function createUserContent(prompt: string): Content[] {
+  return [
+    {
+      role: "user",
+      parts: [{ text: prompt }],
+    },
+  ];
+}
+
+function extractTextFromParts(parts: Part[] | undefined): string | null {
+  if (!parts || parts.length === 0) {
+    return null;
+  }
+
+  const text = parts
+    .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
+    .join("")
+    .trim();
+
+  return text.length > 0 ? text : null;
+}
+
+function extractResponseText(response: GenerateContentResponse): string {
+  const outputText = extractTextFromParts(response.output);
+  if (outputText) {
+    return outputText;
+  }
+
+  const firstCandidate = response.candidates?.find(
+    (candidate) => candidate.content?.parts && candidate.content.parts.length > 0
+  );
+  const candidateText = extractTextFromParts(firstCandidate?.content?.parts);
+  if (candidateText) {
+    return candidateText;
+  }
+
+  const legacyText = (response as { text?: unknown }).text;
+  if (typeof legacyText === "string" && legacyText.trim().length > 0) {
+    return legacyText.trim();
+  }
+
+  throw new Error("No response from Gemini API");
+}
+
 async function generateContent(prompt: string): Promise<string> {
   const client = getClient();
   const response = await client.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: prompt,
+    contents: createUserContent(prompt),
   });
 
-  if (!response.text) {
-    throw new Error("No response from Gemini API");
-  }
-
-  return response.text;
+  return extractResponseText(response);
 }
 
 /**
