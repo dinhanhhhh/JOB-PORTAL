@@ -7,5 +7,13 @@
     "dev:frontend": "pnpm --filter frontend dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint"
+  },
+  "pnpm": {
+    "overrides": {
+      "jws@4.0.0": "4.0.1",
+      "jws@3.2.2": "3.2.3",
+      "glob@10.4.5": "10.5.0",
+      "js-yaml@4.1.0": "4.1.1"
+    }
   }
 }
