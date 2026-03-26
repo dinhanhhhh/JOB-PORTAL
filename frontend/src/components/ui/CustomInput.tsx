@@ -12,7 +12,7 @@ interface CustomInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 const CustomInput = forwardRef<HTMLInputElement, CustomInputProps>(
   ({ label, error, className, ...props }, ref) => {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 w-full">
         {label && <Label htmlFor={props.id}>{label}</Label>}
         <Input
           ref={ref}

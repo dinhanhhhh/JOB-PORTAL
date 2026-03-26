@@ -69,41 +69,47 @@ export async function getJobs(req: Request, res: Response): Promise<void> {
     const limitNum = Math.min(100, Math.max(1, parseInt(validated.limit, 10)));
     const skip = (pageNum - 1) * limitNum;
 
-    // ✅ Build filter - isActive thay vì isOpen
-    const filter: Record<string, unknown> = { isActive: true };
+    // ✅ Build conditions array
+    const conditions: any[] = [{ isActive: true }];
 
-    // ✅ Text search (q thay vì search)
+    // ✅ Search by title only for clean autocomplete suggestions
     if (validated.q) {
-      filter.$text = { $search: validated.q };
+      conditions.push({
+        title: { $regex: validated.q, $options: "i" },
+      });
     }
 
     if (validated.location) {
-      filter.location = new RegExp(validated.location, "i");
+      conditions.push({ location: new RegExp(validated.location, "i") });
     }
 
     // ✅ isRemote thay vì remote
     if (validated.isRemote !== undefined) {
-      filter.isRemote = validated.isRemote === "true";
+      conditions.push({ isRemote: validated.isRemote === "true" });
     }
 
     if (validated.level) {
-      filter.level = validated.level;
+      conditions.push({ level: validated.level });
     }
 
     if (validated.type) {
-      filter.type = validated.type;
+      conditions.push({ type: validated.type });
     }
 
     // ✅ Skills dùng $all thay vì $in
     if (validated.skills) {
       const skillsArray = validated.skills.split(",").map((s) => s.trim());
-      filter.skills = { $all: skillsArray };
+      conditions.push({ skills: { $all: skillsArray } });
     }
 
     if (validated.salaryMin) {
       const min = parseInt(validated.salaryMin, 10);
-      filter.$or = [{ salaryMax: { $gte: min } }, { salaryMin: { $gte: min } }];
+      conditions.push({
+        $or: [{ salaryMax: { $gte: min } }, { salaryMin: { $gte: min } }],
+      });
     }
+
+    const filter = { $and: conditions };
 
     // Execute query
     const [jobs, total] = await Promise.all([

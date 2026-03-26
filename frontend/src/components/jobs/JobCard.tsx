@@ -4,12 +4,18 @@ import Link from "next/link";
 import type { Job } from "@/types";
 import { cn } from "@/lib/utils";
 
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { translations } from "@/lib/translations";
+
 type JobCardProps = {
   job: Job;
   index?: number;
 };
 
 export default function JobCard({ job, index = 0 }: JobCardProps) {
+  const { language } = useLanguage();
+  const t = translations[language].common;
+
   return (
     <div
       className={cn(
@@ -38,13 +44,13 @@ export default function JobCard({ job, index = 0 }: JobCardProps) {
       </div>
       <div className="mt-4 flex items-center justify-between text-sm">
         <span className="text-foreground/75">
-          {job.isRemote ? "Remote" : job.location ?? "Onsite"}
+          {job.isRemote ? t.remote : job.location ?? t.onsite}
         </span>
         <Link
           className="interactive-link text-sm text-primary"
           href={`/jobs/${job._id}`}
         >
-          View
+          {t.view}
         </Link>
       </div>
       {job.company && (

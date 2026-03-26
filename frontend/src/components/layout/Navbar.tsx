@@ -4,15 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { translations } from "@/lib/translations";
 
-// Load ThemeToggle on client only to avoid SSR hydration mismatch
-const ThemeToggle = dynamic(() => import("@/components/ui/ThemeToggle"), {
-  ssr: false,
-});
+// Load Toggles on client only to avoid SSR hydration mismatch
+const ThemeToggle = dynamic(() => import("@/components/ui/ThemeToggle"), { ssr: false });
+const LanguageToggle = dynamic(() => import("@/components/ui/LanguageToggle"), { ssr: false });
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].nav;
+  
   const pathname = usePathname();
   const linkClass = (href: string) =>
     cn(
@@ -33,13 +37,13 @@ export default function Navbar() {
         {/* Navigation Links */}
         <div className="flex items-center gap-4">
           {/* Link chung cho tất cả */}
-          <Link href="/" className={linkClass("/")}>Jobs</Link>
+          <Link href="/" className={linkClass("/")}>{t.jobs}</Link>
 
           {/* Menu cho SEEKER */}
           {!loading && user?.role === "seeker" && (
             <>
-              <Link href="/applications" className={linkClass("/applications")}>My Applications</Link>
-              <Link href="/profile" className={linkClass("/profile")}>Profile</Link>
+              <Link href="/applications" className={linkClass("/applications")}>{t.myApplications}</Link>
+              <Link href="/profile" className={linkClass("/profile")}>{t.profile}</Link>
             </>
           )}
 
@@ -47,17 +51,17 @@ export default function Navbar() {
           {!loading &&
             (user?.role === "employer" || user?.role === "admin") && (
               <>
-                <Link href="/applications" className={linkClass("/applications")}>Applications</Link>
+                <Link href="/applications" className={linkClass("/applications")}>{t.applications}</Link>
                 {user?.role === "employer" && (
-                  <Link href="/company" className={linkClass("/company")}>Company</Link>
+                  <Link href="/company" className={linkClass("/company")}>{t.company}</Link>
                 )}
-                <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
+                <Link href="/dashboard" className={linkClass("/dashboard")}>{t.dashboard}</Link>
               </>
             )}
 
           {/* Menu riêng cho ADMIN */}
           {!loading && user?.role === "admin" && (
-            <Link href="/admin" className={linkClass("/admin")}>Admin</Link>
+            <Link href="/admin" className={linkClass("/admin")}>{t.admin}</Link>
           )}
 
           {/* Authentication Section */}
@@ -66,7 +70,7 @@ export default function Navbar() {
           ) : user ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-foreground/90">
-                Xin chào, <span className="font-medium">{user.name}</span>
+                {t.welcome}, <span className="font-medium">{user.name}</span>
                 <span className="ml-1 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                   {user.role}
                 </span>
@@ -76,19 +80,20 @@ export default function Navbar() {
                 className="interactive-link text-sm text-destructive"
                 onClick={logout}
               >
-                Logout
+                {t.logout}
               </button>
             </div>
           ) : (
             <>
               <Link href="/login" className="interactive-link text-sm text-foreground/80">
-                Login
+                {t.login}
               </Link>
               <Link href="/register" className="interactive-link text-sm text-primary">
-                Register
+                {t.register}
               </Link>
             </>
           )}
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </div>

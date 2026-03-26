@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -10,6 +10,8 @@ import CustomButton from "@/components/ui/CustomButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { translations } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { getApiBaseApi } from "@/lib/api";
 import Link from "next/link";
@@ -27,6 +29,8 @@ type FormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
   const { register: registerUser, user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].auth;
   const router = useRouter();
 
   const {
@@ -49,7 +53,7 @@ export default function RegisterPage() {
     router.push("/");
   };
 
-  const role = useWatch({ control, name: "role" });
+  const roleValue = useWatch({ control, name: "role" });
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background text-foreground px-4 py-10">
@@ -58,44 +62,42 @@ export default function RegisterPage() {
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
             <span className="text-xl">~</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
-          <p className="text-sm text-muted-foreground">
-            Start discovering curated roles tailored to your ambition.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t.registerTitle}</h1>
+          <p className="text-sm text-muted-foreground">{t.registerSubtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full name</Label>
-            <Input id="name" placeholder="Your name" {...register("name")} />
+            <Label htmlFor="name">{t.name}</Label>
+            <Input id="name" placeholder={t.name} {...register("name")} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">{t.email}</Label>
             <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t.password}</Label>
             <Input id="password" type="password" {...register("password")} />
             {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">{t.role}</Label>
             <select
               id="role"
               className="h-9 w-full rounded-md border border-border/40 bg-background/70 px-3 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
               {...register("role")}
             >
               <option className="bg-slate-900" value="seeker">
-                Seeker
+                {t.seeker}
               </option>
               <option className="bg-slate-900" value="employer">
-                Employer
+                {t.employer}
               </option>
             </select>
             <p className="text-xs text-muted-foreground">
-              Selected role: <b>{role}</b>
+              {t.selectedRole}: <b>{roleValue === "seeker" ? t.seeker : t.employer}</b>
             </p>
             {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
           </div>
@@ -106,7 +108,7 @@ export default function RegisterPage() {
             loading={isSubmitting}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Creating..." : "Sign up"}
+            {isSubmitting ? t.signingUp : t.registerButton}
           </CustomButton>
 
           <div className="relative my-2">
@@ -114,7 +116,7 @@ export default function RegisterPage() {
               <span className="w-full border-t border-border/60" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-card px-2 text-muted-foreground">{t.orContinueWith}</span>
             </div>
           </div>
 
@@ -148,9 +150,9 @@ export default function RegisterPage() {
           </Button>
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t.hasAccount}{" "}
           <Link href="/login" className="interactive-link text-primary">
-            Sign in
+            {t.loginButton}
           </Link>
         </p>
       </Card>

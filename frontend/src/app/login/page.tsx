@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -10,6 +10,8 @@ import CustomButton from "@/components/ui/CustomButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { translations } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { getApiBaseApi } from "@/lib/api";
 import Link from "next/link";
@@ -22,6 +24,9 @@ type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const { login, user, loading } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].auth;
+  const tc = translations[language].common;
   const router = useRouter();
 
   useEffect(() => {
@@ -46,22 +51,22 @@ export default function LoginPage() {
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
             <span className="text-xl">~</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sign in to your account</h1>
-          <p className="text-sm text-muted-foreground">Welcome back! We&apos;re excited to see you.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t.loginTitle}</h1>
+          <p className="text-sm text-muted-foreground">{t.loginSubtitle}</p>
         </div>
 
         {user ? (
-          <p className="text-sm text-muted-foreground">Redirecting...</p>
+          <p className="text-sm text-muted-foreground">{tc.redirecting}</p>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email">{t.email}</Label>
               <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.password}</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
@@ -72,10 +77,10 @@ export default function LoginPage() {
                   type="checkbox"
                   className="h-4 w-4 rounded border-border/60 bg-background/60"
                 />
-                Remember me
+                {t.rememberMe}
               </label>
               <a className="interactive-link text-primary text-sm" href="#">
-                Forgot password?
+                {t.forgotPassword}
               </a>
             </div>
 
@@ -85,7 +90,7 @@ export default function LoginPage() {
               loading={isSubmitting}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Signing in..." : "Sign in"}
+              {isSubmitting ? t.signingIn : t.loginButton}
             </CustomButton>
 
             <div className="relative my-2">
@@ -93,7 +98,7 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border/60" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">{t.orContinueWith}</span>
               </div>
             </div>
 
@@ -117,9 +122,9 @@ export default function LoginPage() {
           </form>
         )}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t.noAccount}{" "}
           <Link href="/register" className="interactive-link text-primary">
-            Sign up
+            {t.registerButton}
           </Link>
         </p>
       </Card>
