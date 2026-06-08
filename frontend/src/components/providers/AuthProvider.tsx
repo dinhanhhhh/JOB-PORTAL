@@ -31,13 +31,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+
+    // Load cached user on mount (client-side only)
+    const cached = localStorage.getItem("auth_user");
+    if (cached) {
+      try {
+        const cachedUser = JSON.parse(cached);
+        setUser(cachedUser);
+        setLoading(false);
+      } catch (e) {
+        localStorage.removeItem("auth_user");
+      }
+    }
+
     me()
       .then((u) => {
-        if (isMounted) setUser(u);
+        if (isMounted) {
+          setUser(u);
+          if (u) {
+            localStorage.setItem("auth_user", JSON.stringify(u));
+          } else {
+            localStorage.removeItem("auth_user");
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setUser(null);
+          localStorage.removeItem("auth_user");
+        }
       })
       .finally(() => {
         if (isMounted) setLoading(false);
       });
+
     return () => {
       isMounted = false;
     };
@@ -47,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const u = await apiLogin({ email, password });
       setUser(u);
+      localStorage.setItem("auth_user", JSON.stringify(u));
     } catch (error) {
       console.error("Login failed", error);
       throw error;
@@ -62,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const u = await apiRegister({ name, email, password, role });
       setUser(u);
+      localStorage.setItem("auth_user", JSON.stringify(u));
     } catch (error) {
       console.error("Register failed", error);
       throw error;
@@ -72,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await apiLogout();
       setUser(null);
+      localStorage.removeItem("auth_user");
     } catch (error) {
       console.error("Logout failed", error);
       throw error;

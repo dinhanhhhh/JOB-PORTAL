@@ -66,7 +66,10 @@ export default function Navbar() {
 
           {/* Authentication Section */}
           {loading ? (
-            <span className="text-sm text-muted-foreground">...</span>
+            <div className="flex items-center gap-4 animate-pulse">
+              <div className="h-4 w-16 bg-foreground/10 rounded"></div>
+              <div className="h-4 w-14 bg-primary/20 rounded"></div>
+            </div>
           ) : user ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-foreground/90">
