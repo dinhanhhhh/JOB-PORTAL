@@ -86,7 +86,7 @@ export default function HomePage() {
         const data = await getJobs({
           q: trimmed,
           page: currentPage,
-          limit: 6,
+          limit: 3,
           level: level || undefined,
           isRemote: isRemote || undefined,
           type: type || undefined,
