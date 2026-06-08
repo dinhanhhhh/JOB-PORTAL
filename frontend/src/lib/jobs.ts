@@ -11,9 +11,24 @@ import type {
 // Hàm lấy jobs công khai (đã có sẵn)
 export async function getJobs(query?: {
   q?: string;
+  page?: number | string;
+  limit?: number | string;
+  isRemote?: string;
+  level?: string;
+  type?: string;
+  salaryMin?: string;
 }): Promise<JobsListResponse> {
-  const q = query?.q ? `?q=${encodeURIComponent(query.q)}` : "";
-  return apiGet<JobsListResponse>(`/jobs${q}`);
+  const params = new URLSearchParams();
+  if (query?.q) params.append("q", query.q);
+  if (query?.page) params.append("page", String(query.page));
+  if (query?.limit) params.append("limit", String(query.limit));
+  if (query?.isRemote) params.append("isRemote", query.isRemote);
+  if (query?.level) params.append("level", query.level);
+  if (query?.type) params.append("type", query.type);
+  if (query?.salaryMin) params.append("salaryMin", query.salaryMin);
+
+  const qs = params.toString();
+  return apiGet<JobsListResponse>(`/jobs${qs ? `?${qs}` : ""}`);
 }
 
 // Hàm tạo job (đã có sẵn)
