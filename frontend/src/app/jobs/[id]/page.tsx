@@ -9,6 +9,9 @@ import CustomButton from "@/components/ui/CustomButton";
 import CustomTextarea from "@/components/ui/CustomTextarea";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRouter } from "next/navigation";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import { translations } from "@/lib/translations";
 
 export default function JobDetailPage() {
   const params = useParams();
@@ -18,16 +21,29 @@ export default function JobDetailPage() {
 
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (!jobId) return;
+  const { language } = useLanguage();
+  const tc = translations[language].common;
 
+  const fetchJob = () => {
+    if (!jobId) return;
+    setLoading(true);
+    setError(null);
     getJobById(jobId)
       .then((data) => setJob(data.job))
+      .catch((err) => {
+        console.error("Get job error:", err);
+        setError(tc.error);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchJob();
   }, [jobId]);
 
   const handleApply = async () => {
@@ -62,8 +78,42 @@ export default function JobDetailPage() {
     }
   };
 
-  if (loading) return <div>Đang tải...</div>;
-  if (!job) return <div>Không tìm thấy công việc</div>;
+  if (loading) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div>{tc.loading}</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center">
+        <div className="fade-up-soft rounded-2xl border border-destructive/20 bg-destructive/5 p-10 text-center backdrop-blur flex flex-col items-center justify-center gap-4 max-w-xl mx-auto">
+          <div className="p-3 rounded-full bg-destructive/10 text-destructive">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <p className="text-destructive font-medium">{error}</p>
+          <CustomButton onClick={fetchJob} variant="outline" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            {tc.retry}
+          </CustomButton>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center">
+        <div className="fade-up-soft rounded-2xl border border-dashed border-border/60 bg-card/70 p-10 text-center backdrop-blur">
+          <p className="text-muted-foreground">
+            {language === "vi" ? "Không tìm thấy công việc" : "Job not found"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">

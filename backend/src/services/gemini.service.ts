@@ -4,7 +4,7 @@ import {
   type GenerateContentResponse,
   type Part,
 } from "@google/genai";
-import { env } from "../utils/env";
+import { env } from "../utils/env.js";
 
 let aiClient: GoogleGenAI | null = null;
 
@@ -42,9 +42,9 @@ function extractTextFromParts(parts: Part[] | undefined): string | null {
 }
 
 function extractResponseText(response: GenerateContentResponse): string {
-  const outputText = extractTextFromParts(response.output);
-  if (outputText) {
-    return outputText;
+  const text = response.text;
+  if (text && text.trim().length > 0) {
+    return text.trim();
   }
 
   const firstCandidate = response.candidates?.find(
@@ -53,11 +53,6 @@ function extractResponseText(response: GenerateContentResponse): string {
   const candidateText = extractTextFromParts(firstCandidate?.content?.parts);
   if (candidateText) {
     return candidateText;
-  }
-
-  const legacyText = (response as { text?: unknown }).text;
-  if (typeof legacyText === "string" && legacyText.trim().length > 0) {
-    return legacyText.trim();
   }
 
   throw new Error("No response from Gemini API");

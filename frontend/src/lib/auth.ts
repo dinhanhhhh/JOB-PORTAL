@@ -6,7 +6,10 @@ export async function me(): Promise<User | null> {
     const data = await apiGet<MeResponse>("/auth/me");
     return data.user;
   } catch (error) {
-    if (error instanceof Error && /\[401\]/.test(error.message)) {
+    if (
+      error instanceof Error &&
+      (/\[401\]/.test(error.message) || error.message.includes("401"))
+    ) {
       return null;
     }
     throw error;

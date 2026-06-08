@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import { env } from "../utils/env";
+import { env } from "../utils/env.js";
 
 const cloudinaryConfigured = Boolean(
   env.CLOUDINARY_CLOUD_NAME &&

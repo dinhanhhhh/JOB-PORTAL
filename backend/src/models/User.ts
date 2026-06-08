@@ -1,6 +1,6 @@
 import { Schema, model, Document } from "mongoose";
 import bcrypt from "bcryptjs";
-import type { UserRole } from "../types/common";
+import type { UserRole } from "../types/common.js";
 
 /**
  * Interface User Document
@@ -53,18 +53,17 @@ const UserSchema = new Schema<IUser>(
  * Pre-save Hook: Hash password trước khi lưu
  * CHỈ hash nếu password tồn tại (regular users)
  */
-UserSchema.pre("save", async function (next) {
+UserSchema.pre("save", async function (this: IUser) {
   // ✅ THÊM: Kiểm tra password có tồn tại không
   if (!this.password || !this.isModified("password")) {
-    return next();
+    return;
   }
 
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
   } catch (error) {
-    next(error as Error);
+    throw error;
   }
 });
 

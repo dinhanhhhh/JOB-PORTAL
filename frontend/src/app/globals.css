@@ -256,7 +256,7 @@
   }
 
   .interactive-button {
-    @apply relative overflow-hidden bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground shadow-[0_10px_30px_-18px] shadow-primary/80 transition duration-300 ease-out;
+    @apply relative overflow-hidden bg-linear-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground shadow-[0_10px_30px_-18px] shadow-primary/80 transition duration-300 ease-out;
   }
   .interactive-button::before {
     content: "";
@@ -288,7 +288,8 @@
   .interactive-link::after {
     content: "";
     position: absolute;
-    inset-x: 0;
+    left: 0;
+    right: 0;
     bottom: -0.25rem;
     height: 1.5px;
     border-radius: 999px;

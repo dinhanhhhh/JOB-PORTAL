@@ -1,6 +1,6 @@
-import { app } from "./server";
-import { env } from "./utils/env";
-import { connectDB } from "./config/db";
+import { app } from "./server.js";
+import { env } from "./utils/env.js";
+import { connectDB } from "./config/db.js";
 
 const port = Number(env.PORT) || 4000;
 

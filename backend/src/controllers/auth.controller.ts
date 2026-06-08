@@ -1,13 +1,13 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { Types } from "mongoose";
-import User, { type IUser } from "../models/User";
+import User, { type IUser } from "../models/User.js";
 import {
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
-} from "../utils/jwt";
-import { setAuthCookies, clearAuthCookies } from "../utils/cookies";
+} from "../utils/jwt.js";
+import { setAuthCookies, clearAuthCookies } from "../utils/cookies.js";
 
 // ===============================================
 // ZOD VALIDATION SCHEMAS

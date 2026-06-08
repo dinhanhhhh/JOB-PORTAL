@@ -3,18 +3,18 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import passport from "./config/passport";
-import { env } from "./utils/env";
-import { errorHandler } from "./middlewares/errorHandler"; // ✅ THÊM
+import passport from "./config/passport.js";
+import { env } from "./utils/env.js";
+import { errorHandler } from "./middlewares/errorHandler.js"; // ✅ THÊM
 
 // Import routes
-import authRoutes from "./routes/auth.routes";
-import companyRoutes from "./routes/company.routes";
-import jobRoutes from "./routes/job.routes";
-import applicationRoutes from "./routes/application.routes"; // ✅ THÊM
-import profileRoutes from "./routes/profile.routes"; // ✅ THÊM
-import adminRoutes from "./routes/admin.routes"; // ✅ THÊM
-import aiRoutes from "./routes/ai.routes";
+import authRoutes from "./routes/auth.routes.js";
+import companyRoutes from "./routes/company.routes.js";
+import jobRoutes from "./routes/job.routes.js";
+import applicationRoutes from "./routes/application.routes.js"; // ✅ THÊM
+import profileRoutes from "./routes/profile.routes.js"; // ✅ THÊM
+import adminRoutes from "./routes/admin.routes.js"; // ✅ THÊM
+import aiRoutes from "./routes/ai.routes.js";
 
 export const app = express();
 

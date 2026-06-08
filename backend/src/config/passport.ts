@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import User, { type IUser } from "../models/User";
-import { env } from "../utils/env";
+import User, { type IUser } from "../models/User.js";
+import { env } from "../utils/env.js";
 
 if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   passport.use(

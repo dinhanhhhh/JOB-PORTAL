@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { Types } from "mongoose";
-import SeekerProfile from "../models/SeekerProfile";
-import { uploadToCloudinary } from "../services/cloudinary.service";
+import SeekerProfile from "../models/SeekerProfile.js";
+import { uploadToCloudinary } from "../services/cloudinary.service.js";
 
 const updateProfileSchema = z.object({
   phone: z.string().optional(),

@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import Company from "../models/Company";
+import Company from "../models/Company.js";
 import { MongoServerError } from "mongodb";
-import { uploadToCloudinary } from "../services/cloudinary.service"; // ✅ Thêm import ở đầu file
+import { uploadToCloudinary } from "../services/cloudinary.service.js"; // ✅ Thêm import ở đầu file
 
 const companySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters long"),

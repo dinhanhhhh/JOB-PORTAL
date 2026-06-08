@@ -1,6 +1,6 @@
 // backend/src/utils/jwt.ts
 import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
-import type { UserRole } from "../types/common";
+import type { UserRole } from "../types/common.js";
 
 // Kiểu chuỗi thời gian hợp lệ theo ms (vd: "15m", "7d", "3600", "500ms")
 type MsString = import("ms").StringValue;

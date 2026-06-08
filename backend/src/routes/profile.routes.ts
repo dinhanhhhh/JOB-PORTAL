@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
   getSeekerProfile,
   updateSeekerProfile,
   uploadAvatar,
   uploadResume,
-} from "../controllers/profile.controller";
-import { uploadImage, uploadPDF } from "../middlewares/upload";
+} from "../controllers/profile.controller.js";
+import { uploadImage, uploadPDF } from "../middlewares/upload.js";
 
 const router = Router();
 

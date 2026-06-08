@@ -4,10 +4,10 @@ import {
   signRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
-} from "../utils/jwt";
-import type { UserRole } from "../types/common";
-import User, { type IUser } from "../models/User";
-import { setAuthCookies, clearAuthCookies } from "../utils/cookies";
+} from "../utils/jwt.js";
+import type { UserRole } from "../types/common.js";
+import User, { type IUser } from "../models/User.js";
+import { setAuthCookies, clearAuthCookies } from "../utils/cookies.js";
 
 export type AuthenticatedUser = { _id: string; role: UserRole };
 

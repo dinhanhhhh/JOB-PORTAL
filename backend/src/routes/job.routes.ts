@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
   getJobs,
   getJobById,
@@ -8,7 +8,7 @@ import {
   deleteJob,
   toggleJobStatus,
   getMyJobs,
-} from "../controllers/job.controller";
+} from "../controllers/job.controller.js";
 
 const router = Router();
 

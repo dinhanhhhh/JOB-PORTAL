@@ -5,6 +5,7 @@ import type { Job } from "@/types";
 import { cn } from "@/lib/utils";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { translations } from "@/lib/translations";
 
 type JobCardProps = {
@@ -14,7 +15,14 @@ type JobCardProps = {
 
 export default function JobCard({ job, index = 0 }: JobCardProps) {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language].common;
+
+  const handleViewClick = () => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent("show-cta-banner"));
+    }
+  };
 
   return (
     <div
@@ -49,6 +57,7 @@ export default function JobCard({ job, index = 0 }: JobCardProps) {
         <Link
           className="interactive-link text-sm text-primary"
           href={`/jobs/${job._id}`}
+          onClick={handleViewClick}
         >
           {t.view}
         </Link>

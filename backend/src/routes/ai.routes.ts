@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
   generateCoverLetterAI,
   summarizeCandidateAI,
-} from "../controllers/application.controller";
-import { generateDescription } from "../controllers/job.controller";
-import { aiRateLimit } from "../middlewares/rateLimit";
+} from "../controllers/application.controller.js";
+import { generateDescription } from "../controllers/job.controller.js";
+import { aiRateLimit } from "../middlewares/rateLimit.js";
 
 const router = Router();
 

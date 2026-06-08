@@ -1,5 +1,5 @@
 import { Router } from "express";
-import passport from "../config/passport";
+import passport from "../config/passport.js";
 import {
   login,
   logout,
@@ -7,8 +7,8 @@ import {
   refresh,
   register,
   googleCallback,
-} from "../controllers/auth.controller";
-import { requireAuth } from "../middlewares/auth";
+} from "../controllers/auth.controller.js";
+import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 

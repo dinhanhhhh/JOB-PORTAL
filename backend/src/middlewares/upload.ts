@@ -2,6 +2,10 @@ import multer, { type FileFilterCallback } from "multer";
 import type { Request } from "express";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Tạo folder uploads nếu chưa tồn tại
 const uploadsDir = path.join(__dirname, "../../uploads");

@@ -3,9 +3,9 @@ import {
   getMyCompany,
   uploadLogo,
   upsertMyCompany,
-} from "../controllers/company.controller";
-import { requireAuth, requireRole } from "../middlewares/auth";
-import { uploadImage } from "../middlewares/upload"; // ✅ THÊM import
+} from "../controllers/company.controller.js";
+import { requireAuth, requireRole } from "../middlewares/auth.js";
+import { uploadImage } from "../middlewares/upload.js"; // ✅ THÊM import
 
 const router = Router();
 

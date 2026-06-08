@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import User from "../models/User";
-import Job from "../models/Job";
-import Application from "../models/Application";
-import Company from "../models/Company";
+import User from "../models/User.js";
+import Job from "../models/Job.js";
+import Application from "../models/Application.js";
+import Company from "../models/Company.js";
 
 /**
  * GET /api/admin/stats

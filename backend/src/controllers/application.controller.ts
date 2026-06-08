@@ -1,14 +1,14 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import Application from "../models/Application";
-import Job from "../models/Job";
-import SeekerProfile from "../models/SeekerProfile";
-import { uploadToCloudinary } from "../services/cloudinary.service";
+import Application from "../models/Application.js";
+import Job from "../models/Job.js";
+import SeekerProfile from "../models/SeekerProfile.js";
+import { uploadToCloudinary } from "../services/cloudinary.service.js";
 import {
   generateCoverLetter,
   summarizeCandidate,
-} from "../services/gemini.service";
-import User from "../models/User";
+} from "../services/gemini.service.js";
+import User from "../models/User.js";
 
 // Validation schemas
 const applyJobSchema = z.object({

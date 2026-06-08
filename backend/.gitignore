@@ -13,3 +13,7 @@ coverage/
 uploads/
 # Nếu muốn commit cấu trúc trống:
 # !uploads/.gitkeep
+
+# Understand Anything (code exploration tool)
+.understand-anything/
+

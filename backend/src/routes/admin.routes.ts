@@ -1,6 +1,6 @@
 // backend/src/routes/admin.routes.ts
 import { Router } from "express";
-import { requireAuth, requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
   getStats,
   getUsers,
@@ -13,7 +13,7 @@ import {
   getApplicationsAdmin,
   updateApplicationStatusByAdmin,
   deleteApplicationByAdmin,
-} from "../controllers/admin.controller";
+} from "../controllers/admin.controller.js";
 
 const router = Router();
 

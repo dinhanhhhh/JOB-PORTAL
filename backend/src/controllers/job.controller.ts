@@ -1,45 +1,56 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
-import Job from "../models/Job";
-import Company from "../models/Company";
-import { generateJobDescription } from "../services/gemini.service";
+import Job from "../models/Job.js";
+import Company from "../models/Company.js";
+import { generateJobDescription } from "../services/gemini.service.js";
 
 // ✅ Zod schemas
-export const createJobSchema = z
-  .object({
-    title: z.string().min(3, "Title must be at least 3 characters"),
-    description: z
-      .string()
-      .min(20, "Description must be at least 20 characters"),
-    requirements: z.array(z.string()).optional().default([]),
-    skills: z.array(z.string()).min(1, "At least one skill is required"),
-    location: z.string().optional(),
-    isRemote: z.boolean().optional().default(false),
-    salaryMin: z.number().min(0).optional(),
-    salaryMax: z.number().min(0).optional(),
-    level: z.enum(["entry", "mid", "senior", "lead", "executive"]),
-    type: z.enum([
-      "full-time",
-      "part-time",
-      "contract",
-      "internship",
-      "freelance",
-    ]),
-  })
-  .refine(
-    (data) => {
-      if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Salary minimum must be less than or equal to salary maximum",
-      path: ["salaryMin"],
-    }
-  );
+const jobBaseSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z
+    .string()
+    .min(20, "Description must be at least 20 characters"),
+  requirements: z.array(z.string()).optional().default([]),
+  skills: z.array(z.string()).min(1, "At least one skill is required"),
+  location: z.string().optional(),
+  isRemote: z.boolean().optional().default(false),
+  salaryMin: z.number().min(0).optional(),
+  salaryMax: z.number().min(0).optional(),
+  level: z.enum(["entry", "mid", "senior", "lead", "executive"]),
+  type: z.enum([
+    "full-time",
+    "part-time",
+    "contract",
+    "internship",
+    "freelance",
+  ]),
+});
 
-const updateJobSchema = createJobSchema.partial();
+export const createJobSchema = jobBaseSchema.refine(
+  (data) => {
+    if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Salary minimum must be less than or equal to salary maximum",
+    path: ["salaryMin"],
+  }
+);
+
+const updateJobSchema = jobBaseSchema.partial().refine(
+  (data) => {
+    if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Salary minimum must be less than or equal to salary maximum",
+    path: ["salaryMin"],
+  }
+);
 
 // ✅ Query validation schema
 const querySchema = z.object({

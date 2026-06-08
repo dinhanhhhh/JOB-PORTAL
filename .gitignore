@@ -14,3 +14,11 @@ node_modules/
 # System / cache
 *.tmp
 *.cache
+
+# Understand Anything (code exploration tool)
+.understand-anything-temp/
+.understand-anything/
+backend/.understand-anything/
+start-dashboard.bat
+start-dashboard.sh
+

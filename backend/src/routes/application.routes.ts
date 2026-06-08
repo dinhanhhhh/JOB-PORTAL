@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
   applyToJob,
   getMyApplications,
@@ -8,8 +8,8 @@ import {
   getApplicationById,
   generateCoverLetterAI,
   summarizeCandidateAI,
-} from "../controllers/application.controller";
-import { uploadPDF } from "../middlewares/upload";
+} from "../controllers/application.controller.js";
+import { uploadPDF } from "../middlewares/upload.js";
 
 const router = Router();
 

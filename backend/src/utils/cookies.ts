@@ -1,5 +1,5 @@
 import type { Response, CookieOptions } from "express";
-import { env } from "./env";
+import { env } from "./env.js";
 
 const ACCESS_COOKIE = "access_token";
 const REFRESH_COOKIE = "refresh_token";
