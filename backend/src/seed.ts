@@ -1,11 +1,11 @@
 // src/seed.ts
 import mongoose from "mongoose";
-import { connectDB } from "./config/db";
-import User from "./models/User";
-import Company from "./models/Company";
-import Job from "./models/Job";
-import SeekerProfile from "./models/SeekerProfile";
-import Application from "./models/Application"; // ✅ THÊM
+import { connectDB } from "./config/db.js";
+import User from "./models/User.js";
+import Company from "./models/Company.js";
+import Job from "./models/Job.js";
+import SeekerProfile from "./models/SeekerProfile.js";
+import Application from "./models/Application.js"; // ✅ THÊM
 
 async function main() {
   await connectDB();
@@ -103,6 +103,86 @@ async function main() {
     isActive: true,
   });
 
+  const job3 = await Job.create({
+    title: "Node.js Backend Engineer",
+    description: "We are seeking a Backend Engineer skilled in Node.js, Express, and microservices architecture.",
+    requirements: [
+      "3+ years experience with Node.js and Express",
+      "Experience with SQL and NoSQL databases",
+      "Understanding of RESTful APIs and microservices"
+    ],
+    skills: ["Node.js", "Express", "MongoDB", "PostgreSQL", "Redis"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "mid",
+    type: "full-time",
+    salaryMin: 1800,
+    salaryMax: 2800,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job4 = await Job.create({
+    title: "Mobile App Developer (React Native)",
+    description: "Build high-performance native app experiences for iOS and Android platforms.",
+    requirements: [
+      "Strong React Native foundations",
+      "Ability to integrate native modules",
+      "Familiarity with App Store & Google Play publishing"
+    ],
+    skills: ["React Native", "JavaScript", "TypeScript", "Redux", "iOS", "Android"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "entry",
+    type: "internship",
+    salaryMin: 500,
+    salaryMax: 1000,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job5 = await Job.create({
+    title: "DevOps Engineer",
+    description: "Automate, deploy, and scale our cloud infrastructure on AWS.",
+    requirements: [
+      "3+ years managing AWS infrastructure",
+      "Proficient in Docker and Kubernetes",
+      "Strong scripting skills (Bash, Python)"
+    ],
+    skills: ["AWS", "Docker", "Kubernetes", "CI/CD", "Terraform", "Linux"],
+    location: "Remote",
+    isRemote: true,
+    level: "senior",
+    type: "contract",
+    salaryMin: 3000,
+    salaryMax: 5000,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job6 = await Job.create({
+    title: "AI / Machine Learning Engineer",
+    description: "Integrate Large Language Models and develop predictive algorithms for job matching.",
+    requirements: [
+      "Experience with OpenAI API, Gemini API, or LangChain",
+      "Strong Python background",
+      "Understanding of vector databases"
+    ],
+    skills: ["Python", "TensorFlow", "PyTorch", "OpenAI", "Gemini", "LangChain"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "lead",
+    type: "full-time",
+    salaryMin: 3500,
+    salaryMax: 6000,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
   // 📄 Seed 1 application mẫu (seeker apply job1)
   const application = await Application.create({
     job: job1._id,
@@ -121,7 +201,7 @@ async function main() {
     { Role: "Seeker", Email: seeker.email, Password: "dev12345" },
   ]);
   console.log("🏢 Company:", company.name);
-  console.log("💼 Jobs:", job1.title, "+", job2.title);
+  console.log("💼 Jobs seeded:", [job1.title, job2.title, job3.title, job4.title, job5.title, job6.title].join(", "));
   console.log("👤 Seeker profile:", seekerProfile.skills.join(", "));
   console.log("📄 Application:",(application.coverLetter ?? "").slice(0, 60) + "...");
   console.log("📦 Database:", mongoose.connection.name);
