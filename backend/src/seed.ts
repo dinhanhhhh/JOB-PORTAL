@@ -183,6 +183,126 @@ async function main() {
     isActive: true,
   });
 
+  const job7 = await Job.create({
+    title: "UI / UX Designer",
+    description: "Create user-centric designs, wireframes, and prototypes for web and mobile platforms.",
+    requirements: [
+      "3+ years UI/UX design experience",
+      "Proficient in Figma, Adobe XD, or Sketch",
+      "Strong portfolio demonstrating web and mobile design solutions"
+    ],
+    skills: ["Figma", "UI Design", "UX Research", "Wireframing", "Prototyping"],
+    location: "Remote",
+    isRemote: true,
+    level: "mid",
+    type: "full-time",
+    salaryMin: 1200,
+    salaryMax: 2200,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job8 = await Job.create({
+    title: "Data Analyst",
+    description: "Interpret data, analyze results using statistical techniques, and provide ongoing reports.",
+    requirements: [
+      "Strong knowledge of SQL and Excel",
+      "Experience with data visualization tools (Tableau, PowerBI)",
+      "Analytical mindset and attention to detail"
+    ],
+    skills: ["SQL", "Excel", "Tableau", "PowerBI", "Python", "Statistics"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "entry",
+    type: "part-time",
+    salaryMin: 600,
+    salaryMax: 1200,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job9 = await Job.create({
+    title: "Cybersecurity Engineer",
+    description: "Protect our system infrastructure, networks, and data from security breaches and threats.",
+    requirements: [
+      "5+ years in information security or cybersecurity engineering",
+      "Understanding of firewalls, proxies, SIEM, and antivirus detection systems",
+      "Relevant certification (e.g., CISSP, CEH) is a plus"
+    ],
+    skills: ["Network Security", "Penetration Testing", "Cryptography", "Linux", "SIEM"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "senior",
+    type: "full-time",
+    salaryMin: 2800,
+    salaryMax: 4500,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job10 = await Job.create({
+    title: "Cloud Solutions Architect",
+    description: "Design cloud computing strategies, cloud adoption plans, and application design.",
+    requirements: [
+      "Deep understanding of cloud computing technologies and workloads (AWS/GCP/Azure)",
+      "Experience in database migration and cloud infrastructure architecture",
+      "Strong background in enterprise software design and patterns"
+    ],
+    skills: ["AWS", "GCP", "Cloud Architecture", "System Design", "Enterprise Patterns"],
+    location: "Remote",
+    isRemote: true,
+    level: "lead",
+    type: "contract",
+    salaryMin: 4000,
+    salaryMax: 7000,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job11 = await Job.create({
+    title: "Golang Backend Developer",
+    description: "Build robust, high-performance concurrency-heavy microservices in Go.",
+    requirements: [
+      "2+ years writing production Golang code",
+      "Deep understanding of Go routines and concurrency patterns",
+      "Experience building high-throughput microservices"
+    ],
+    skills: ["Golang", "Docker", "gRPC", "MongoDB", "PostgreSQL", "Kafka"],
+    location: "Ho Chi Minh City",
+    isRemote: false,
+    level: "mid",
+    type: "full-time",
+    salaryMin: 2000,
+    salaryMax: 3200,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
+  const job12 = await Job.create({
+    title: "Quality Assurance (QA) Engineer",
+    description: "Test Web/Mobile applications manually and write test scripts for automated testing.",
+    requirements: [
+      "Familiarity with manual testing processes and bug tracking tools (Jira)",
+      "Basic programming skills in JavaScript/Python to write automation scripts",
+      "Eager to learn automated testing frameworks (Playwright, Selenium)"
+    ],
+    skills: ["Manual Testing", "Jira", "Selenium", "Playwright", "Test Automation"],
+    location: "Remote",
+    isRemote: true,
+    level: "entry",
+    type: "internship",
+    salaryMin: 400,
+    salaryMax: 800,
+    employer: employer._id,
+    company: company._id,
+    isActive: true,
+  });
+
   // 📄 Seed 1 application mẫu (seeker apply job1)
   const application = await Application.create({
     job: job1._id,
@@ -201,7 +321,10 @@ async function main() {
     { Role: "Seeker", Email: seeker.email, Password: "dev12345" },
   ]);
   console.log("🏢 Company:", company.name);
-  console.log("💼 Jobs seeded:", [job1.title, job2.title, job3.title, job4.title, job5.title, job6.title].join(", "));
+  console.log(
+    "💼 Jobs seeded count:",
+    [job1, job2, job3, job4, job5, job6, job7, job8, job9, job10, job11, job12].length
+  );
   console.log("👤 Seeker profile:", seekerProfile.skills.join(", "));
   console.log("📄 Application:",(application.coverLetter ?? "").slice(0, 60) + "...");
   console.log("📦 Database:", mongoose.connection.name);
