@@ -82,7 +82,12 @@ function createApi(): AxiosInstance {
       const original = error.config as RetryConfig | undefined;
       const status = error.response?.status ?? 0;
 
-      if (process.env.NODE_ENV === "development") {
+      const isAuthSilentError =
+        status === 401 &&
+        (error.config?.url?.includes("/auth/me") ||
+          error.config?.url?.includes("/auth/refresh"));
+
+      if (process.env.NODE_ENV === "development" && !isAuthSilentError) {
         console.error("[api] request error", {
           url: error.config?.url,
           method: (error.config?.method || "get").toUpperCase(),
@@ -114,10 +119,41 @@ function createApi(): AxiosInstance {
           return getApi()(original);
         } catch (refreshError) {
           pendingQueue.forEach(({ reject }) => reject(refreshError));
-          throw refreshError;
+          
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("auth_user");
+            if (
+              !window.location.pathname.startsWith("/login") &&
+              !window.location.pathname.startsWith("/register") &&
+              window.location.pathname !== "/"
+            ) {
+              window.location.href = "/login";
+            }
+          }
+
+          const refreshStatus = (refreshError as AxiosError).response?.status ?? status;
+          const msg = extractErrorMessage(refreshError);
+          const wrapped = new Error(`[${refreshStatus}] ${msg}`);
+          // @ts-expect-error attach extra for debug
+          wrapped.__raw = refreshError;
+          throw wrapped;
         } finally {
           pendingQueue = [];
           isRefreshing = false;
+        }
+      }
+
+      if (status === 401) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("auth_user");
+          if (
+            !isAuthSilentError &&
+            !window.location.pathname.startsWith("/login") &&
+            !window.location.pathname.startsWith("/register") &&
+            window.location.pathname !== "/"
+          ) {
+            window.location.href = "/login";
+          }
         }
       }
 

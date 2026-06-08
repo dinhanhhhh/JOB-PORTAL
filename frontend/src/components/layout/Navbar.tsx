@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
 import { translations } from "@/lib/translations";
+import Skeleton from "@/components/ui/Skeleton";
 
 // Load Toggles on client only to avoid SSR hydration mismatch
 const ThemeToggle = dynamic(() => import("@/components/ui/ThemeToggle"), { ssr: false });
@@ -66,9 +67,9 @@ export default function Navbar() {
 
           {/* Authentication Section */}
           {loading ? (
-            <div className="flex items-center gap-4 animate-pulse">
-              <div className="h-4 w-16 bg-foreground/10 rounded"></div>
-              <div className="h-4 w-14 bg-primary/20 rounded"></div>
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-14 bg-primary/20" />
             </div>
           ) : user ? (
             <div className="flex items-center gap-3">
