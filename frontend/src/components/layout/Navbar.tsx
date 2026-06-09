@@ -27,18 +27,22 @@ export default function Navbar() {
         : "text-foreground/80"
     );
 
+  const handleLogoClick = () => {
+    window.dispatchEvent(new CustomEvent("reset-jobs-filter"));
+  };
+
   return (
     <nav className="w-full bg-background border-b">
       <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between text-foreground">
         {/* Logo */}
-        <Link href="/" className="interactive-link text-lg font-semibold interactive-link-active">
+        <Link href="/" onClick={handleLogoClick} className="interactive-link text-lg font-semibold interactive-link-active">
           JobPortal
         </Link>
 
         {/* Navigation Links */}
         <div className="flex items-center gap-4">
           {/* Link chung cho tất cả */}
-          <Link href="/" className={linkClass("/")}>{t.jobs}</Link>
+          <Link href="/" onClick={handleLogoClick} className={linkClass("/")}>{t.jobs}</Link>
 
           {/* Menu cho SEEKER */}
           {!loading && user?.role === "seeker" && (

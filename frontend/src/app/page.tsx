@@ -54,6 +54,23 @@ export default function HomePage() {
     };
   }, []);
 
+  // Listen to logo/nav clicks to reset all job filters
+  useEffect(() => {
+    const handleReset = () => {
+      setQuery("");
+      setActiveQuery("");
+      setLevel("");
+      setIsRemote("");
+      setType("");
+      setSalaryMin("");
+      setPage(1);
+    };
+    window.addEventListener("reset-jobs-filter", handleReset);
+    return () => {
+      window.removeEventListener("reset-jobs-filter", handleReset);
+    };
+  }, []);
+
   // Use debounce for suggestions
   useEffect(() => {
     if (query.trim().length === 0) {
