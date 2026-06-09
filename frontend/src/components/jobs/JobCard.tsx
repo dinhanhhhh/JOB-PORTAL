@@ -11,9 +11,32 @@ import { translations } from "@/lib/translations";
 type JobCardProps = {
   job: Job;
   index?: number;
+  highlightKeyword?: string;
 };
 
-export default function JobCard({ job, index = 0 }: JobCardProps) {
+// Reusable text highlight helper
+function highlightText(text: string, keyword: string | undefined) {
+  if (!keyword || !keyword.trim()) {
+    return text;
+  }
+  const escapedKeyword = keyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  const regex = new RegExp(`(${escapedKeyword})`, "gi");
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <mark
+        key={i}
+        className="bg-primary/20 text-primary font-semibold px-0.5 rounded-sm"
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
+export default function JobCard({ job, index = 0, highlightKeyword }: JobCardProps) {
   const { language } = useLanguage();
   const { user } = useAuth();
   const t = translations[language].common;
@@ -32,13 +55,15 @@ export default function JobCard({ job, index = 0 }: JobCardProps) {
       style={{ animationDelay: `${index * 70}ms` }}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold text-lg leading-tight">{job.title}</h3>
+        <h3 className="font-semibold text-lg leading-tight">
+          {highlightText(job.title, highlightKeyword)}
+        </h3>
         <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground border border-white/10">
           {job.level}
         </span>
       </div>
       <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-        {job.description}
+        {highlightText(job.description, highlightKeyword)}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {job.skills.slice(0, 4).map((skill) => (
@@ -46,7 +71,7 @@ export default function JobCard({ job, index = 0 }: JobCardProps) {
             key={skill}
             className="text-xs px-2 py-0.5 rounded-full border border-accent/40 bg-accent/20 text-accent-foreground/90 transition-colors duration-200 hover:bg-accent/40"
           >
-            {skill}
+            {highlightText(skill, highlightKeyword)}
           </span>
         ))}
       </div>

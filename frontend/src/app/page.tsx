@@ -369,7 +369,12 @@ export default function HomePage() {
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {jobs.map((job, index) => (
-            <JobCard key={job._id} job={job} index={index} />
+            <JobCard
+              key={job._id}
+              job={job}
+              index={index}
+              highlightKeyword={activeQuery}
+            />
           ))}
         </div>
       )}
