@@ -84,12 +84,14 @@ export async function getJobs(req: Request, res: Response): Promise<void> {
     const conditions: any[] = [{ isActive: true }];
 
     // ✅ Search by title, description, and skills for broader matching
+    // Use word boundaries for description to avoid matching inside words (e.g. "ui" matching "build")
     if (validated.q) {
+      const escapedQuery = validated.q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       conditions.push({
         $or: [
-          { title: { $regex: validated.q, $options: "i" } },
-          { description: { $regex: validated.q, $options: "i" } },
-          { skills: { $regex: validated.q, $options: "i" } },
+          { title: { $regex: escapedQuery, $options: "i" } },
+          { description: { $regex: `\\b${escapedQuery}\\b`, $options: "i" } },
+          { skills: { $regex: escapedQuery, $options: "i" } },
         ],
       });
     }
