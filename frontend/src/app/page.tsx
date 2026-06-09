@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { getJobs } from "@/lib/jobs";
 import type { Job } from "@/types";
 import JobCard from "@/components/jobs/JobCard";
@@ -12,10 +13,30 @@ import { translations } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 import { AlertCircle, RefreshCw, X } from "lucide-react";
 
-export default function HomePage() {
+function HomePageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [query, setQuery] = useState<string>("");
-  const [activeQuery, setActiveQuery] = useState<string>("");
+  
+  // Local query state for typing
+  const initialQ = searchParams.get("q") || "";
+  const [query, setQuery] = useState<string>(initialQ);
+  
+  // Sync input value with URL param q on back/forward navigation
+  useEffect(() => {
+    setQuery(searchParams.get("q") || "");
+  }, [searchParams]);
+
+  // Derived filter states from URL search params
+  const activeQuery = searchParams.get("q") || "";
+  const level = searchParams.get("level") || "";
+  const isRemote = searchParams.get("isRemote") || "";
+  const type = searchParams.get("type") || "";
+  const salaryMin = searchParams.get("salaryMin") || "";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+
   const [loading, setLoading] = useState<boolean>(true);
   const [suggestions, setSuggestions] = useState<Job[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
@@ -24,19 +45,32 @@ export default function HomePage() {
   const isMounted = useRef(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filter states
-  const [level, setLevel] = useState<string>("");
-  const [isRemote, setIsRemote] = useState<string>("");
-  const [type, setType] = useState<string>("");
-  const [salaryMin, setSalaryMin] = useState<string>("");
-
   // Pagination states
-  const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
 
   const { language } = useLanguage();
   const t = translations[language].home;
   const tc = translations[language].common;
+
+  // Helper to update search params in the URL
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === "") {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
+      // Reset page to 1 unless page is explicitly updated
+      if (!updates.page) {
+        params.delete("page");
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, router, pathname]
+  );
   
   useEffect(() => {
     isMounted.current = true;
@@ -58,18 +92,13 @@ export default function HomePage() {
   useEffect(() => {
     const handleReset = () => {
       setQuery("");
-      setActiveQuery("");
-      setLevel("");
-      setIsRemote("");
-      setType("");
-      setSalaryMin("");
-      setPage(1);
+      router.push(pathname);
     };
     window.addEventListener("reset-jobs-filter", handleReset);
     return () => {
       window.removeEventListener("reset-jobs-filter", handleReset);
     };
-  }, []);
+  }, [router, pathname]);
 
   // Use debounce for suggestions
   useEffect(() => {
@@ -130,10 +159,9 @@ export default function HomePage() {
 
   const handleSuggestionClick = (jobTitle: string) => {
     setQuery(jobTitle);
-    setActiveQuery(jobTitle);
+    updateParams({ q: jobTitle });
     setShowSuggestions(false);
     setActiveIndex(-1);
-    setPage(1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -158,11 +186,10 @@ export default function HomePage() {
 
   const handleClear = () => {
     setQuery("");
-    setActiveQuery("");
     setSuggestions([]);
     setShowSuggestions(false);
     setActiveIndex(-1);
-    setPage(1);
+    updateParams({ q: "" });
   };
 
   return (
@@ -193,8 +220,7 @@ export default function HomePage() {
         onSubmit={(e) => {
           e.preventDefault();
           if (activeIndex === -1) {
-            setActiveQuery(query);
-            setPage(1);
+            updateParams({ q: query });
           }
         }}
         className="fade-up-soft flex flex-col gap-3 md:flex-row md:items-center relative z-20"
@@ -267,8 +293,7 @@ export default function HomePage() {
             <select
               value={level}
               onChange={(e) => {
-                setLevel(e.target.value);
-                setPage(1);
+                updateParams({ level: e.target.value });
               }}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
             >
@@ -289,8 +314,7 @@ export default function HomePage() {
             <select
               value={type}
               onChange={(e) => {
-                setType(e.target.value);
-                setPage(1);
+                updateParams({ type: e.target.value });
               }}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
             >
@@ -311,8 +335,7 @@ export default function HomePage() {
             <select
               value={isRemote}
               onChange={(e) => {
-                setIsRemote(e.target.value);
-                setPage(1);
+                updateParams({ isRemote: e.target.value });
               }}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
             >
@@ -331,8 +354,7 @@ export default function HomePage() {
               type="number"
               value={salaryMin}
               onChange={(e) => {
-                setSalaryMin(e.target.value);
-                setPage(1);
+                updateParams({ salaryMin: e.target.value });
               }}
               placeholder={language === "vi" ? "Ví dụ: 1500" : "e.g. 1500"}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
@@ -346,12 +368,7 @@ export default function HomePage() {
             <button
               onClick={() => {
                 setQuery("");
-                setActiveQuery("");
-                setLevel("");
-                setIsRemote("");
-                setType("");
-                setSalaryMin("");
-                setPage(1);
+                router.push(pathname);
               }}
               className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg hover:bg-secondary"
             >
@@ -402,7 +419,7 @@ export default function HomePage() {
           <CustomButton
             variant="outline"
             disabled={page === 1}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            onClick={() => updateParams({ page: String(Math.max(1, page - 1)) })}
             className="text-xs py-2 px-3 gap-1"
           >
             {tc.previous}
@@ -415,7 +432,7 @@ export default function HomePage() {
           <CustomButton
             variant="outline"
             disabled={page === totalPages}
-            onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+            onClick={() => updateParams({ page: String(Math.min(totalPages, page + 1)) })}
             className="text-xs py-2 px-3 gap-1"
           >
             {tc.next}
@@ -423,5 +440,19 @@ export default function HomePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-48 items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      }
+    >
+      <HomePageContent />
+    </Suspense>
   );
 }
