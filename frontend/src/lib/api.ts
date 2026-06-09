@@ -17,13 +17,21 @@ let pendingQueue: QueueEntry[] = [];
 const FALLBACK_BASE_URL = "http://localhost:4000";
 
 export function getApiBase(): string {
-  return process.env.NEXT_PUBLIC_API_URL?.trim() || FALLBACK_BASE_URL;
+  const val = process.env.NEXT_PUBLIC_API_URL?.trim() || FALLBACK_BASE_URL;
+  if (typeof window !== "undefined") {
+    console.log("[getApiBase]", { env: process.env.NEXT_PUBLIC_API_URL, resolved: val });
+  }
+  return val;
 }
 
 // Ensure exactly one "/api" suffix regardless of env value
 export function getApiBaseApi(): string {
   const base = getApiBase().replace(/\/+$/, "");
-  return base.endsWith("/api") ? base : `${base}/api`;
+  const val = base.endsWith("/api") ? base : `${base}/api`;
+  if (typeof window !== "undefined") {
+    console.log("[getApiBaseApi]", val);
+  }
+  return val;
 }
 
 type ZodFlatten = {

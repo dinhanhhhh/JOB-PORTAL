@@ -83,10 +83,14 @@ export async function getJobs(req: Request, res: Response): Promise<void> {
     // ✅ Build conditions array
     const conditions: any[] = [{ isActive: true }];
 
-    // ✅ Search by title only for clean autocomplete suggestions
+    // ✅ Search by title, description, and skills for broader matching
     if (validated.q) {
       conditions.push({
-        title: { $regex: validated.q, $options: "i" },
+        $or: [
+          { title: { $regex: validated.q, $options: "i" } },
+          { description: { $regex: validated.q, $options: "i" } },
+          { skills: { $regex: validated.q, $options: "i" } },
+        ],
       });
     }
 

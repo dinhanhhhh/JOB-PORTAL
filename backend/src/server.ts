@@ -18,6 +18,12 @@ import aiRoutes from "./routes/ai.routes.js";
 
 export const app = express();
 
+// Request logging middleware
+app.use((req, _res, next) => {
+  console.log(`[backend] ${req.method} ${req.url}`);
+  next();
+});
+
 // Core middlewares
 // Tin cậy proxy (Render/Heroku/Cloudflare) để cookie `secure` hoạt động đúng
 app.set("trust proxy", 1);
