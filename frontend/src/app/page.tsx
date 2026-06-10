@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  Suspense,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { getJobs } from "@/lib/jobs";
 import type { Job } from "@/types";
@@ -12,6 +20,125 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { translations } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 import { AlertCircle, RefreshCw, X } from "lucide-react";
+
+function diacriticPattern(input: string): string {
+  const map: Record<string, string> = {
+    a: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    à: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    á: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ả: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ã: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ạ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    â: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ầ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ấ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ẩ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ẫ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ậ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ă: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ằ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ắ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ẳ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ẵ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+    ặ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
+
+    e: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    è: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    é: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ẻ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ẽ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ẹ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ê: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ề: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ế: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ể: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ễ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+    ệ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
+
+    i: "[iìíỉĩịIÌÍỈĨỊ]",
+    ì: "[iìíỉĩịIÌÍỈĨỊ]",
+    í: "[iìíỉĩịIÌÍỈĨỊ]",
+    ỉ: "[iìíỉĩịIÌÍỈĨỊ]",
+    ĩ: "[iìíỉĩịIÌÍỈĨỊ]",
+    ị: "[iìíỉĩịIÌÍỈĨỊ]",
+
+    o: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ò: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ó: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ỏ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    õ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ọ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ô: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ồ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ố: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ổ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ỗ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ộ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ơ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ờ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ớ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ở: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ỡ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+    ợ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
+
+    u: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ù: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ú: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ủ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ũ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ụ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ư: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ừ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ứ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ử: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ui: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ux: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    "ui/ux": "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ữ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+    ự: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
+
+    y: "[yỳýỷỹỵYỲÝỶỸỴ]",
+    ỳ: "[yỳýỷỹỵYỲÝỶỸỴ]",
+    ý: "[yỳýỷỹỵYỲÝỶỸỴ]",
+    ỷ: "[yỳýỷỹỵYỲÝỶỸỴ]",
+    ỹ: "[yỳýỷỹỵYỲÝỶỸỴ]",
+    ỵ: "[yỳýỷỹỵYỲÝỶỸỴ]",
+
+    d: "[dđDĐ]",
+    đ: "[dđDĐ]"
+  };
+  return input
+    .split("")
+    .map((char) => map[char] || map[char.toLowerCase()] || char)
+    .join("");
+}
+
+function buildKeywordRegex(keyword: string, flags = "i") {
+  const escapedKeyword = keyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  const fuzzyPattern = diacriticPattern(escapedKeyword);
+  return new RegExp(`(${fuzzyPattern})`, flags);
+}
+
+function highlightSuggestionText(text: string, keyword: string | undefined): ReactNode {
+  if (!keyword || !keyword.trim()) {
+    return text;
+  }
+  const regex = buildKeywordRegex(keyword, "gi");
+  const matchRegex = buildKeywordRegex(keyword);
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    matchRegex.test(part) ? (
+      <mark
+        key={i}
+        className="bg-primary/20 text-primary font-bold px-0.5 rounded-sm"
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -40,10 +167,12 @@ function HomePageContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [suggestions, setSuggestions] = useState<Job[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState<boolean>(false);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const [error, setError] = useState<string | null>(null);
   const isMounted = useRef(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const suggestionRequestId = useRef(0);
 
   // Pagination states
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -102,24 +231,50 @@ function HomePageContent() {
 
   // Use debounce for suggestions
   useEffect(() => {
-    if (query.trim().length === 0) {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length === 0) {
+      suggestionRequestId.current += 1;
       setSuggestions([]);
       setShowSuggestions(false);
       setActiveIndex(-1);
+      setLoadingSuggestions(false);
       return;
     }
 
+    setLoadingSuggestions(true);
+    const currentRequestId = ++suggestionRequestId.current;
     const timer = setTimeout(async () => {
-      const data = await getJobs({ q: query.trim() });
-      if (isMounted.current) {
-        setSuggestions(data.data.slice(0, 5)); // Show top 5
-        setShowSuggestions(true);
-        setActiveIndex(-1);
+      try {
+        const data = await getJobs({
+          q: trimmedQuery,
+          page: 1,
+          limit: 5,
+          level: level || undefined,
+          isRemote: isRemote || undefined,
+          type: type || undefined,
+          salaryMin: salaryMin || undefined,
+        });
+        if (isMounted.current && currentRequestId === suggestionRequestId.current) {
+          setSuggestions(data.data);
+          setShowSuggestions(true);
+          setActiveIndex(-1);
+        }
+      } catch (err) {
+        console.error("Fetch suggestions error:", err);
+        if (isMounted.current && currentRequestId === suggestionRequestId.current) {
+          setSuggestions([]);
+          setShowSuggestions(true);
+        }
+      } finally {
+        if (isMounted.current && currentRequestId === suggestionRequestId.current) {
+          setLoadingSuggestions(false);
+        }
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, level, isRemote, type, salaryMin]);
 
   const loadJobs = useCallback(
     async (currentQuery = activeQuery, currentPage = page, showLoader = false) => {
@@ -164,7 +319,7 @@ function HomePageContent() {
     setActiveIndex(-1);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions || suggestions.length === 0) return;
 
     if (e.key === "ArrowDown") {
@@ -190,6 +345,18 @@ function HomePageContent() {
     setShowSuggestions(false);
     setActiveIndex(-1);
     updateParams({ q: "" });
+  };
+
+  const getSuggestionMeta = (job: Job) => {
+    const matchingSkills = job.skills
+      .filter((skill) => buildKeywordRegex(query).test(skill))
+      .slice(0, 3);
+
+    if (matchingSkills.length > 0) {
+      return matchingSkills.join(", ");
+    }
+
+    return job.company?.name || job.location || (job.isRemote ? tc.remote : tc.onsite);
   };
 
   return (
@@ -219,9 +386,9 @@ function HomePageContent() {
       <form 
         onSubmit={(e) => {
           e.preventDefault();
-          if (activeIndex === -1) {
-            updateParams({ q: query });
-          }
+          updateParams({ q: query });
+          setShowSuggestions(false);
+          setActiveIndex(-1);
         }}
         className="fade-up-soft flex flex-col gap-3 md:flex-row md:items-center relative z-20"
       >
@@ -234,6 +401,13 @@ function HomePageContent() {
               onKeyDown={handleKeyDown}
               placeholder={t.searchPlaceholder}
               className="pr-10 w-full"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="job-search-suggestions"
+              aria-expanded={showSuggestions && query.trim().length > 0}
+              aria-activedescendant={
+                activeIndex >= 0 ? `job-search-suggestion-${activeIndex}` : undefined
+              }
             />
             {query && (
               <button
@@ -247,33 +421,53 @@ function HomePageContent() {
           </div>
           
           {/* Suggestions Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 w-full mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
-              {suggestions.map((job, index) => (
-                <button
-                  key={job._id}
-                  type="button"
-                  className={cn(
-                    "w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between group border-b border-border/40 last:border-0",
-                    activeIndex === index ? "bg-accent/80 text-primary" : "hover:bg-accent/40"
-                  )}
-                  onClick={() => handleSuggestionClick(job.title)}
-                  onMouseEnter={() => setActiveIndex(index)}
-                >
-                  <div className="flex flex-col">
-                    <span className={cn("font-medium transition-colors", activeIndex === index && "translate-x-1 duration-300")}>
-                      {job.title}
+          {showSuggestions && query.trim().length > 0 && (
+            <div
+              id="job-search-suggestions"
+              role="listbox"
+              className="absolute top-full left-0 w-full mt-2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200"
+            >
+              {loadingSuggestions ? (
+                <div className="flex items-center justify-center p-4 gap-2 text-sm text-muted-foreground">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <span>{language === "vi" ? "Đang tìm gợi ý..." : "Searching suggestions..."}</span>
+                </div>
+              ) : suggestions.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  {language === "vi" ? "Không tìm thấy gợi ý nào" : "No suggestions found"}
+                </div>
+              ) : (
+                suggestions.map((job, index) => (
+                  <button
+                    key={job._id}
+                    id={`job-search-suggestion-${index}`}
+                    type="button"
+                    role="option"
+                    aria-selected={activeIndex === index}
+                    className={cn(
+                      "w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between group border-b border-border/40 last:border-0",
+                      activeIndex === index ? "bg-accent/80 text-primary" : "hover:bg-accent/40"
+                    )}
+                    onClick={() => handleSuggestionClick(job.title)}
+                    onMouseEnter={() => setActiveIndex(index)}
+                  >
+                    <div className="flex flex-col">
+                      <span className={cn("font-medium transition-colors", activeIndex === index && "translate-x-1 duration-300")}>
+                        {highlightSuggestionText(job.title, query)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {highlightSuggestionText(getSuggestionMeta(job), query)}
+                      </span>
+                    </div>
+                    <span className={cn(
+                      "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider transition-colors",
+                      activeIndex === index ? "bg-primary text-primary-foreground" : "bg-secondary"
+                    )}>
+                      {job.level}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{job.company?.name || job.location}</span>
-                  </div>
-                  <span className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider transition-colors",
-                    activeIndex === index ? "bg-primary text-primary-foreground" : "bg-secondary"
-                  )}>
-                    {job.level}
-                  </span>
-                </button>
-              ))}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
