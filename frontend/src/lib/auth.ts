@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./api";
+import { ApiClientError, apiGet, apiPost } from "./api";
 import type { LoginRequest, LoginResponse, MeResponse, User } from "@/types";
 
 export async function me(): Promise<User | null> {
@@ -6,6 +6,9 @@ export async function me(): Promise<User | null> {
     const data = await apiGet<MeResponse>("/auth/me");
     return data.user;
   } catch (error) {
+    if (error instanceof ApiClientError && error.status === 401) {
+      return null;
+    }
     if (
       error instanceof Error &&
       (/\[401\]/.test(error.message) || error.message.includes("401"))

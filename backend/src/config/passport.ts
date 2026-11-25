@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User, { type IUser } from "../models/User.js";
 import { env } from "../utils/env.js";
+import { normalizeEmail } from "../utils/validation.js";
 
 if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
   passport.use(
@@ -13,8 +14,15 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
+          const rawEmail = profile.emails?.[0]?.value;
+          if (!rawEmail || !rawEmail.trim()) {
+            return done(new Error("Google account missing email"), false);
+          }
+
+          const email = normalizeEmail(rawEmail);
+
           // Check if user already exists
-          let user = await User.findOne({ email: profile.emails?.[0]?.value });
+          let user = await User.findOne({ email });
 
           if (user) {
             return done(null, user);
@@ -22,8 +30,8 @@ if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
 
           // Create new user
           user = await User.create({
-            email: profile.emails?.[0]?.value || "",
-            name: profile.displayName || "",
+            email,
+            name: profile.displayName?.trim() || email.split("@")[0] || "Google User",
             role: "seeker", // Default role
             isActive: true,
             // No password for OAuth users

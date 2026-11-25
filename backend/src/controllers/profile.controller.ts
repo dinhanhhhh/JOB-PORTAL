@@ -2,7 +2,10 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { Types } from "mongoose";
 import SeekerProfile from "../models/SeekerProfile.js";
-import { uploadToCloudinary } from "../services/cloudinary.service.js";
+import {
+  fetchResumeAsset,
+  uploadToCloudinary,
+} from "../services/cloudinary.service.js";
 
 const updateProfileSchema = z.object({
   phone: z.string().optional(),
@@ -148,5 +151,41 @@ export async function uploadResume(req: Request, res: Response): Promise<void> {
   } catch (error) {
     console.error("Error in uploadResume:", error);
     res.status(500).json({ message: "Failed to upload resume" });
+  }
+}
+
+export async function streamMyResume(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const seekerId = req.authenticatedUser?._id;
+    if (!seekerId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const userObjectId = new Types.ObjectId(seekerId);
+    const profile = await SeekerProfile.findOne({ user: userObjectId });
+
+    if (!profile?.resumeUrl) {
+      res.status(404).json({ message: "Resume not found" });
+      return;
+    }
+
+    const asset = await fetchResumeAsset(profile.resumeUrl);
+    res.setHeader("Content-Type", asset.contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${asset.filename}"`
+    );
+    res.setHeader("Cache-Control", "private, no-store");
+    res.send(asset.buffer);
+  } catch (error) {
+    console.error("Error in streamMyResume:", error);
+    res.status(502).json({
+      message:
+        error instanceof Error ? error.message : "Failed to load resume file",
+    });
   }
 }

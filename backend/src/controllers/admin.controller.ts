@@ -4,6 +4,11 @@ import User from "../models/User.js";
 import Job from "../models/Job.js";
 import Application from "../models/Application.js";
 import Company from "../models/Company.js";
+import {
+  escapeRegex,
+  isValidObjectId,
+  parseBoundedInt,
+} from "../utils/validation.js";
 
 /**
  * GET /api/admin/stats
@@ -26,7 +31,6 @@ export async function getStats(_req: Request, res: Response): Promise<void> {
       Application.countDocuments(),
       Job.countDocuments({ isActive: true }),
 
-      // ✅ Users by role
       User.aggregate([{ $group: { _id: "$role", count: { $sum: 1 } } }]).then(
         (results) =>
           results.reduce((acc, { _id, count }) => ({ ...acc, [_id]: count }), {
@@ -36,7 +40,6 @@ export async function getStats(_req: Request, res: Response): Promise<void> {
           })
       ),
 
-      // ✅ Applications by status
       Application.aggregate([
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]).then((results) =>
@@ -48,14 +51,12 @@ export async function getStats(_req: Request, res: Response): Promise<void> {
         })
       ),
 
-      // ✅ Recent jobs (last 5)
       Job.find()
         .populate("company")
         .populate("employer", "name email")
         .sort({ createdAt: -1 })
         .limit(5),
 
-      // ✅ Recent applications (last 5)
       Application.find()
         .populate("job", "title")
         .populate("seeker", "name email")
@@ -91,8 +92,8 @@ export async function getUsers(req: Request, res: Response): Promise<void> {
   try {
     const { page = "1", limit = "10", role, search } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page as string, 10));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+    const pageNum = parseBoundedInt(page, 1, 1, 10000);
+    const limitNum = parseBoundedInt(limit, 10, 1, 100);
     const skip = (pageNum - 1) * limitNum;
 
     const filter: Record<string, unknown> = {};
@@ -101,10 +102,11 @@ export async function getUsers(req: Request, res: Response): Promise<void> {
       filter.role = role;
     }
 
-    if (search) {
+    if (typeof search === "string" && search.trim().length > 0) {
+      const escapedSearch = escapeRegex(search.trim());
       filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
+        { name: { $regex: escapedSearch, $options: "i" } },
+        { email: { $regex: escapedSearch, $options: "i" } },
       ];
     }
 
@@ -126,7 +128,7 @@ export async function getUsers(req: Request, res: Response): Promise<void> {
         totalPages: Math.ceil(total / limitNum),
       },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 }
@@ -140,6 +142,11 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
     const adminId = req.authenticatedUser?._id;
     const { userId } = req.params;
 
+    if (!isValidObjectId(userId)) {
+      res.status(400).json({ message: "Invalid user ID" });
+      return;
+    }
+
     const validated = z
       .object({
         isActive: z.boolean().optional(),
@@ -147,7 +154,6 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
       })
       .parse(req.body);
 
-    // ✅ Prevent self-modification
     if (adminId === userId) {
       res.status(400).json({ message: "Cannot modify your own account" });
       return;
@@ -176,24 +182,40 @@ export async function updateUser(req: Request, res: Response): Promise<void> {
 
 /**
  * GET /api/admin/jobs
- * Tất cả jobs (admin view)
+ * Tất cả jobs (admin view) hỗ trợ search và status filter
  */
 export async function getAllJobs(req: Request, res: Response): Promise<void> {
   try {
-    const { page = "1", limit = "10" } = req.query;
+    const { page = "1", limit = "10", search, status } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page as string, 10));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+    const pageNum = parseBoundedInt(page, 1, 1, 10000);
+    const limitNum = parseBoundedInt(limit, 10, 1, 100);
     const skip = (pageNum - 1) * limitNum;
 
+    const filter: Record<string, unknown> = {};
+
+    if (status === "active") {
+      filter.isActive = true;
+    } else if (status === "inactive") {
+      filter.isActive = false;
+    }
+
+    if (typeof search === "string" && search.trim().length > 0) {
+      const escapedSearch = escapeRegex(search.trim());
+      filter.$or = [
+        { title: { $regex: escapedSearch, $options: "i" } },
+        { location: { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
     const [jobs, total] = await Promise.all([
-      Job.find()
+      Job.find(filter)
         .populate("company")
         .populate("employer", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum),
-      Job.countDocuments(),
+      Job.countDocuments(filter),
     ]);
 
     res.json({
@@ -205,7 +227,7 @@ export async function getAllJobs(req: Request, res: Response): Promise<void> {
         totalPages: Math.ceil(total / limitNum),
       },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch jobs" });
   }
 }
@@ -221,6 +243,11 @@ export async function deleteJobByAdmin(
   try {
     const { jobId } = req.params;
 
+    if (!isValidObjectId(jobId)) {
+      res.status(400).json({ message: "Invalid job ID" });
+      return;
+    }
+
     const job = await Job.findByIdAndDelete(jobId);
 
     if (!job) {
@@ -228,30 +255,31 @@ export async function deleteJobByAdmin(
       return;
     }
 
-    // ✅ Xóa applications liên quan
     await Application.deleteMany({ job: jobId });
 
     res.json({
       message: "Job and related applications deleted successfully",
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to delete job" });
   }
 }
+
 export async function getCompanies(req: Request, res: Response): Promise<void> {
   try {
     const { page = "1", limit = "10", search } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page as string, 10));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+    const pageNum = parseBoundedInt(page, 1, 1, 10000);
+    const limitNum = parseBoundedInt(limit, 10, 1, 100);
     const skip = (pageNum - 1) * limitNum;
 
     const filter: Record<string, unknown> = {};
-    if (search) {
+    if (typeof search === "string" && search.trim().length > 0) {
+      const escapedSearch = escapeRegex(search.trim());
       filter.$or = [
-        { name: { $regex: search as string, $options: "i" } },
-        { description: { $regex: search as string, $options: "i" } },
-        { website: { $regex: search as string, $options: "i" } },
+        { name: { $regex: escapedSearch, $options: "i" } },
+        { description: { $regex: escapedSearch, $options: "i" } },
+        { website: { $regex: escapedSearch, $options: "i" } },
       ];
     }
 
@@ -285,13 +313,17 @@ export async function deleteCompanyByAdmin(
   try {
     const { companyId } = req.params;
 
+    if (!isValidObjectId(companyId)) {
+      res.status(400).json({ message: "Invalid company ID" });
+      return;
+    }
+
     const company = await Company.findByIdAndDelete(companyId);
     if (!company) {
       res.status(404).json({ message: "Company not found" });
       return;
     }
 
-    // Xóa Jobs thuộc company + Applications liên quan
     const jobs = await Job.find({ company: companyId }).select("_id");
     const jobIds = jobs.map((j) => j._id);
     await Promise.all([
@@ -312,8 +344,8 @@ export async function getApplicationsAdmin(
   try {
     const { page = "1", limit = "10", status, search } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page as string, 10));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+    const pageNum = parseBoundedInt(page, 1, 1, 10000);
+    const limitNum = parseBoundedInt(limit, 10, 1, 100);
     const skip = (pageNum - 1) * limitNum;
 
     const filter: Record<string, unknown> = {};
@@ -323,17 +355,32 @@ export async function getApplicationsAdmin(
     ) {
       filter.status = status;
     }
-    if (search) {
+
+    if (typeof search === "string" && search.trim().length > 0) {
+      const escapedSearch = escapeRegex(search.trim());
+      const [matchingJobs, matchingSeekers] = await Promise.all([
+        Job.find({ title: { $regex: escapedSearch, $options: "i" } }).select(
+          "_id"
+        ),
+        User.find({
+          $or: [
+            { name: { $regex: escapedSearch, $options: "i" } },
+            { email: { $regex: escapedSearch, $options: "i" } },
+          ],
+        }).select("_id"),
+      ]);
+
       filter.$or = [
-        { coverLetter: { $regex: search as string, $options: "i" } },
+        { coverLetter: { $regex: escapedSearch, $options: "i" } },
+        { job: { $in: matchingJobs.map((j) => j._id) } },
+        { seeker: { $in: matchingSeekers.map((u) => u._id) } },
       ];
     }
 
     const [apps, total] = await Promise.all([
       Application.find(filter)
-        .populate("job", "title")
-        .populate("seeker", "name email")
         .populate({ path: "job", populate: { path: "company" } })
+        .populate("seeker", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum),
@@ -360,27 +407,42 @@ export async function updateApplicationStatusByAdmin(
 ): Promise<void> {
   try {
     const { applicationId } = req.params;
+
+    if (!isValidObjectId(applicationId)) {
+      res.status(400).json({ message: "Invalid application ID" });
+      return;
+    }
+
     const validated = z
       .object({
         status: z.enum(["submitted", "viewed", "accepted", "rejected"]),
       })
       .parse(req.body);
 
-    const app = await Application.findByIdAndUpdate(
-      applicationId,
-      {
-        status: validated.status,
-        viewedAt: validated.status === "viewed" ? new Date() : undefined,
-      },
-      { new: true }
-    )
-      .populate("job", "title")
-      .populate("seeker", "name email");
-
+    const app = await Application.findById(applicationId);
     if (!app) {
       res.status(404).json({ message: "Application not found" });
       return;
     }
+
+    app.status = validated.status;
+
+    if (validated.status === "viewed" && !app.viewedAt) {
+      app.viewedAt = new Date();
+    }
+
+    if (
+      ["accepted", "rejected"].includes(validated.status) &&
+      !app.respondedAt
+    ) {
+      app.respondedAt = new Date();
+    }
+
+    await app.save();
+    await app.populate([
+      { path: "job", select: "title" },
+      { path: "seeker", select: "name email" },
+    ]);
 
     res.json({ message: "Application updated", application: app });
   } catch (error) {
@@ -400,6 +462,12 @@ export async function deleteApplicationByAdmin(
 ): Promise<void> {
   try {
     const { applicationId } = req.params;
+
+    if (!isValidObjectId(applicationId)) {
+      res.status(400).json({ message: "Invalid application ID" });
+      return;
+    }
+
     const app = await Application.findByIdAndDelete(applicationId);
     if (!app) {
       res.status(404).json({ message: "Application not found" });

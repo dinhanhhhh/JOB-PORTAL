@@ -1,5 +1,4 @@
-// frontend/src/lib/admin.ts
-import { apiGet, apiPatch, apiDelete } from "./api";
+import { apiDelete, apiGet, apiPatch } from "./api";
 
 export type Role = "seeker" | "employer" | "admin";
 export interface Pagination {
@@ -42,7 +41,7 @@ export function adminUpdateUser(
   body: Partial<Pick<AdminUser, "isActive" | "role">>
 ) {
   return apiPatch<{ message: string; user: AdminUser }, typeof body>(
-    `/admin/users/${userId}`,
+    `/admin/users/${encodeURIComponent(userId)}`,
     body
   );
 }
@@ -55,18 +54,30 @@ export interface AdminJob {
   employer?: { _id: string; name: string; email: string };
   company?: { _id: string; name: string };
 }
+
 export interface AdminJobsRes {
   data: AdminJob[];
   pagination: Pagination;
 }
-export function adminGetJobs(params?: { page?: number; limit?: number }) {
+
+export function adminGetJobs(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: "active" | "inactive";
+}) {
   const q = new URLSearchParams();
   if (params?.page) q.set("page", String(params.page));
   if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.search) q.set("search", params.search);
+  if (params?.status) q.set("status", params.status);
   return apiGet<AdminJobsRes>(`/admin/jobs?${q.toString()}`);
 }
+
 export function adminDeleteJob(jobId: string) {
-  return apiDelete<{ message: string }>(`/admin/jobs/${jobId}`);
+  return apiDelete<{ message: string }>(
+    `/admin/jobs/${encodeURIComponent(jobId)}`
+  );
 }
 
 export interface AdminCompany {
@@ -76,18 +87,28 @@ export interface AdminCompany {
   createdAt: string;
   owner?: { _id: string; name: string; email: string };
 }
+
 export interface AdminCompaniesRes {
   data: AdminCompany[];
   pagination: Pagination;
 }
-export function adminGetCompanies(params?: { page?: number; limit?: number }) {
+
+export function adminGetCompanies(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) {
   const q = new URLSearchParams();
   if (params?.page) q.set("page", String(params.page));
   if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.search) q.set("search", params.search);
   return apiGet<AdminCompaniesRes>(`/admin/companies?${q.toString()}`);
 }
+
 export function adminDeleteCompany(companyId: string) {
-  return apiDelete<{ message: string }>(`/admin/companies/${companyId}`);
+  return apiDelete<{ message: string }>(
+    `/admin/companies/${encodeURIComponent(companyId)}`
+  );
 }
 
 export type AppStatus = "submitted" | "viewed" | "accepted" | "rejected";
@@ -98,28 +119,66 @@ export interface AdminApplication {
   job?: { _id: string; title: string; company?: { _id: string; name: string } };
   seeker?: { _id: string; name: string; email: string };
 }
+
 export interface AdminApplicationsRes {
   data: AdminApplication[];
   pagination: Pagination;
 }
+
 export function adminGetApplications(params?: {
   page?: number;
   limit?: number;
+  status?: AppStatus;
+  search?: string;
 }) {
   const q = new URLSearchParams();
   if (params?.page) q.set("page", String(params.page));
   if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.status) q.set("status", params.status);
+  if (params?.search) q.set("search", params.search);
   return apiGet<AdminApplicationsRes>(`/admin/applications?${q.toString()}`);
 }
+
 export function adminUpdateApplicationStatus(
   applicationId: string,
   status: AppStatus
 ) {
   return apiPatch<{ message: string }, { status: AppStatus }>(
-    `/admin/applications/${applicationId}/status`,
+    `/admin/applications/${encodeURIComponent(applicationId)}/status`,
     { status }
   );
 }
+
 export function adminDeleteApplication(applicationId: string) {
-  return apiDelete<{ message: string }>(`/admin/applications/${applicationId}`);
+  return apiDelete<{ message: string }>(
+    `/admin/applications/${encodeURIComponent(applicationId)}`
+  );
+}
+
+export interface AdminStatsRes {
+  stats: {
+    totalUsers: number;
+    totalJobs: number;
+    totalApplications: number;
+    activeJobs: number;
+    usersByRole: {
+      seeker: number;
+      employer: number;
+      admin: number;
+    };
+    applicationsByStatus: {
+      submitted: number;
+      viewed: number;
+      accepted: number;
+      rejected: number;
+    };
+  };
+  recentActivities: {
+    recentJobs: AdminJob[];
+    recentApplications: AdminApplication[];
+  };
+}
+
+export function adminGetStats(): Promise<AdminStatsRes> {
+  return apiGet<AdminStatsRes>("/admin/stats");
 }

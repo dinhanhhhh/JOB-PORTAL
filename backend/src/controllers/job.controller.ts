@@ -1,18 +1,59 @@
 import type { Request, Response } from "express";
+import type { SortOrder } from "mongoose";
 import { z } from "zod";
 import Job from "../models/Job.js";
 import Company from "../models/Company.js";
+import Application from "../models/Application.js";
 import { generateJobDescription } from "../services/gemini.service.js";
+import {
+  buildDiacriticPattern,
+  buildWordBoundaryRegexPattern,
+  escapeRegex,
+  isValidObjectId,
+  parseBoundedInt,
+  parseNonNegativeNumber,
+} from "../utils/validation.js";
+
+export type JobSortOption = "newest" | "oldest" | "salary_desc" | "salary_asc";
+
+export function validateSalaryRange(
+  salaryMin: number | undefined,
+  salaryMax: number | undefined
+): boolean {
+  if (
+    salaryMin !== undefined &&
+    salaryMax !== undefined &&
+    salaryMin > salaryMax
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function resolveJobSort(sort?: string): Record<string, SortOrder> {
+  switch (sort) {
+    case "oldest":
+      return { createdAt: 1 };
+    case "salary_desc":
+      return { salaryMax: -1, salaryMin: -1, createdAt: -1 };
+    case "salary_asc":
+      return { salaryMin: 1, salaryMax: 1, createdAt: -1 };
+    case "newest":
+    default:
+      return { createdAt: -1 };
+  }
+}
 
 // ✅ Zod schemas
 const jobBaseSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
+  title: z.string().trim().min(3, "Title must be at least 3 characters"),
   description: z
     .string()
+    .trim()
     .min(20, "Description must be at least 20 characters"),
   requirements: z.array(z.string()).optional().default([]),
   skills: z.array(z.string()).min(1, "At least one skill is required"),
-  location: z.string().optional(),
+  location: z.string().trim().optional(),
   isRemote: z.boolean().optional().default(false),
   salaryMin: z.number().min(0).optional(),
   salaryMax: z.number().min(0).optional(),
@@ -27,25 +68,15 @@ const jobBaseSchema = z.object({
 });
 
 export const createJobSchema = jobBaseSchema.refine(
-  (data) => {
-    if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
-      return false;
-    }
-    return true;
-  },
+  (data) => validateSalaryRange(data.salaryMin, data.salaryMax),
   {
     message: "Salary minimum must be less than or equal to salary maximum",
     path: ["salaryMin"],
   }
 );
 
-const updateJobSchema = jobBaseSchema.partial().refine(
-  (data) => {
-    if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
-      return false;
-    }
-    return true;
-  },
+export const updateJobSchema = jobBaseSchema.partial().refine(
+  (data) => validateSalaryRange(data.salaryMin, data.salaryMax),
   {
     message: "Salary minimum must be less than or equal to salary maximum",
     path: ["salaryMin"],
@@ -56,141 +87,62 @@ const updateJobSchema = jobBaseSchema.partial().refine(
 const querySchema = z.object({
   page: z.string().optional().default("1"),
   limit: z.string().optional().default("10"),
-  q: z.string().optional(), // Đổi từ search → q (theo prompt)
+  q: z.string().optional(),
   location: z.string().optional(),
-  isRemote: z.enum(["true", "false"]).optional(), // Đổi từ remote → isRemote
+  isRemote: z.enum(["true", "false"]).optional(),
   level: z.enum(["entry", "mid", "senior", "lead", "executive"]).optional(),
   skills: z.string().optional(),
   salaryMin: z.string().optional(),
   type: z
     .enum(["full-time", "part-time", "contract", "internship", "freelance"])
     .optional(),
+  sort: z
+    .enum(["newest", "oldest", "salary_desc", "salary_asc"])
+    .optional(),
+  companyId: z.string().optional(),
 });
-
-function diacriticPattern(input: string): string {
-  const map: Record<string, string> = {
-    a: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    à: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    á: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ả: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ã: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ạ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    â: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ầ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ấ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ẩ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ẫ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ậ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ă: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ằ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ắ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ẳ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ẵ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    ặ: "[aàáảãạâầấẩẫậăằắẳẵặAÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶ]",
-    
-    e: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    è: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    é: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ẻ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ẽ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ẹ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ê: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ề: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ế: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ể: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ễ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    ệ: "[eèéẻẽẹêềếểễệEÈÉẺẼẸÊỀẾỂỄỆ]",
-    
-    i: "[iìíỉĩịIÌÍỈĨỊ]",
-    ì: "[iìíỉĩịIÌÍỈĨỊ]",
-    í: "[iìíỉĩịIÌÍỈĨỊ]",
-    ỉ: "[iìíỉĩịIÌÍỈĨỊ]",
-    ĩ: "[iìíỉĩịIÌÍỈĨỊ]",
-    ị: "[iìíỉĩịIÌÍỈĨỊ]",
-    
-    o: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ò: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ó: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ỏ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    õ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ọ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ô: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ồ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ố: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ổ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ỗ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ộ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ơ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ờ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ớ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ở: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ỡ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    ợ: "[oòóỏõọôồốổỗộơờớởỡợOÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]",
-    
-    u: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ù: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ú: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ủ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ũ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ụ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ư: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ừ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ứ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ử: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ữ: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    ự: "[uùúủũụưừứửữựUÙÚỦŨỤƯỪỨỬỮỰ]",
-    
-    y: "[yỳýỷỹỵYỲÝỶỸỴ]",
-    ỳ: "[yỳýỷỹỵYỲÝỶỸỴ]",
-    ý: "[yỳýỷỹỵYỲÝỶỸỴ]",
-    ỷ: "[yỳýỷỹỵYỲÝỶỸỴ]",
-    ỹ: "[yỳýỷỹỵYỲÝỶỸỴ]",
-    ỵ: "[yỳýỷỹỵYỲÝỶỸỴ]",
-    
-    d: "[dđDĐ]",
-    đ: "[dđDĐ]"
-  };
-  return input
-    .split("")
-    .map((char) => map[char] || map[char.toLowerCase()] || char)
-    .join("");
-}
 
 /**
  * GET /api/jobs
- * Get all jobs with filters and pagination
+ * Get all jobs with filters, sorting and pagination
  */
 export async function getJobs(req: Request, res: Response): Promise<void> {
   try {
-    // ✅ Validate query params
     const validated = querySchema.parse(req.query);
 
-    const pageNum = Math.max(1, parseInt(validated.page, 10));
-    const limitNum = Math.min(100, Math.max(1, parseInt(validated.limit, 10)));
+    const pageNum = parseBoundedInt(validated.page, 1, 1, 10000);
+    const limitNum = parseBoundedInt(validated.limit, 10, 1, 100);
     const skip = (pageNum - 1) * limitNum;
 
-    // ✅ Build conditions array
-    const conditions: any[] = [{ isActive: true }];
+    const conditions: Record<string, unknown>[] = [{ isActive: true }];
 
-    // ✅ Search by title, description, and skills for broader matching
-    // Use word boundaries for description to avoid matching inside words (e.g. "ui" matching "build")
-    if (validated.q) {
-      const escapedQuery = validated.q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-      const fuzzyQuery = diacriticPattern(escapedQuery);
+    if (validated.q && validated.q.trim().length > 0) {
+      const trimmedQuery = validated.q.trim();
+      const fuzzyQuery = buildDiacriticPattern(trimmedQuery);
+      const wordBoundaryQuery = buildWordBoundaryRegexPattern(trimmedQuery);
       conditions.push({
         $or: [
           { title: { $regex: fuzzyQuery, $options: "i" } },
-          { description: { $regex: `\\b${fuzzyQuery}\\b`, $options: "i" } },
+          { description: { $regex: wordBoundaryQuery, $options: "i" } },
           { skills: { $regex: fuzzyQuery, $options: "i" } },
         ],
       });
     }
 
-    if (validated.location) {
-      conditions.push({ location: new RegExp(validated.location, "i") });
+    if (validated.location && validated.location.trim().length > 0) {
+      const locationPattern = buildDiacriticPattern(validated.location.trim());
+      conditions.push({ location: new RegExp(locationPattern, "i") });
     }
 
-    // ✅ isRemote thay vì remote
+    if (validated.companyId && validated.companyId.trim().length > 0) {
+      const companyId = validated.companyId.trim();
+      if (!isValidObjectId(companyId)) {
+        res.status(400).json({ message: "Invalid company ID" });
+        return;
+      }
+      conditions.push({ company: companyId });
+    }
+
     if (validated.isRemote !== undefined) {
       conditions.push({ isRemote: validated.isRemote === "true" });
     }
@@ -203,27 +155,42 @@ export async function getJobs(req: Request, res: Response): Promise<void> {
       conditions.push({ type: validated.type });
     }
 
-    // ✅ Skills dùng $all thay vì $in
     if (validated.skills) {
-      const skillsArray = validated.skills.split(",").map((s) => s.trim());
-      conditions.push({ skills: { $all: skillsArray } });
+      const skillsArray = validated.skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      if (skillsArray.length > 0) {
+        conditions.push({
+          skills: {
+            $all: skillsArray.map(
+              (skill) => new RegExp(`^${escapeRegex(skill)}$`, "i")
+            ),
+          },
+        });
+      }
     }
 
-    if (validated.salaryMin) {
-      const min = parseInt(validated.salaryMin, 10);
-      conditions.push({
-        $or: [{ salaryMax: { $gte: min } }, { salaryMin: { $gte: min } }],
-      });
+    if (validated.salaryMin !== undefined) {
+      const minSalary = parseNonNegativeNumber(validated.salaryMin);
+      if (minSalary !== undefined) {
+        conditions.push({
+          $or: [
+            { salaryMax: { $gte: minSalary } },
+            { salaryMin: { $gte: minSalary } },
+          ],
+        });
+      }
     }
 
     const filter = { $and: conditions };
+    const sortSpec = resolveJobSort(validated.sort);
 
-    // Execute query
     const [jobs, total] = await Promise.all([
       Job.find(filter)
         .populate("company")
         .populate("employer", "email name")
-        .sort({ createdAt: -1 })
+        .sort(sortSpec)
         .skip(skip)
         .limit(limitNum),
       Job.countDocuments(filter),
@@ -256,6 +223,11 @@ export async function getJobs(req: Request, res: Response): Promise<void> {
  */
 export async function getJobById(req: Request, res: Response): Promise<void> {
   try {
+    if (!isValidObjectId(req.params.id)) {
+      res.status(400).json({ message: "Invalid job ID" });
+      return;
+    }
+
     const job = await Job.findById(req.params.id)
       .populate("company")
       .populate("employer", "email name");
@@ -266,14 +238,14 @@ export async function getJobById(req: Request, res: Response): Promise<void> {
     }
 
     res.json({ job });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch job" });
   }
 }
 
 /**
  * POST /api/jobs
- * Create new job (Employer only)
+ * Create new job (Employer/Admin)
  */
 export async function createJob(req: Request, res: Response): Promise<void> {
   try {
@@ -285,7 +257,6 @@ export async function createJob(req: Request, res: Response): Promise<void> {
 
     const validated = createJobSchema.parse(req.body);
 
-    // Get employer's company
     const company = await Company.findOne({ owner: employerId });
     if (!company) {
       res
@@ -294,7 +265,6 @@ export async function createJob(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // ✅ isActive thay vì isOpen
     const job = await Job.create({
       ...validated,
       employer: employerId,
@@ -321,20 +291,39 @@ export async function createJob(req: Request, res: Response): Promise<void> {
 
 /**
  * PUT /api/jobs/:id
- * Update job (Employer only - own jobs)
+ * Update job (Owner employer or admin)
  */
 export async function updateJob(req: Request, res: Response): Promise<void> {
   try {
     const employerId = req.authenticatedUser?._id;
+    const isAdmin = req.authenticatedUser?.role === "admin";
+    const jobId = req.params.id;
+
+    if (!isValidObjectId(jobId)) {
+      res.status(400).json({ message: "Invalid job ID" });
+      return;
+    }
+
     const validated = updateJobSchema.parse(req.body);
 
-    const job = await Job.findOne({
-      _id: req.params.id,
-      employer: employerId,
-    });
+    const job = await Job.findOne(
+      isAdmin ? { _id: jobId } : { _id: jobId, employer: employerId }
+    );
 
     if (!job) {
       res.status(404).json({ message: "Job not found or unauthorized" });
+      return;
+    }
+
+    const nextSalaryMin =
+      validated.salaryMin !== undefined ? validated.salaryMin : job.salaryMin;
+    const nextSalaryMax =
+      validated.salaryMax !== undefined ? validated.salaryMax : job.salaryMax;
+
+    if (!validateSalaryRange(nextSalaryMin, nextSalaryMax)) {
+      res.status(400).json({
+        message: "Salary minimum must be less than or equal to salary maximum",
+      });
       return;
     }
 
@@ -359,31 +348,39 @@ export async function updateJob(req: Request, res: Response): Promise<void> {
 
 /**
  * DELETE /api/jobs/:id
- * Delete job (Employer only - own jobs)
+ * Delete job and cascade delete related applications (Owner employer or admin)
  */
 export async function deleteJob(req: Request, res: Response): Promise<void> {
   try {
     const employerId = req.authenticatedUser?._id;
+    const isAdmin = req.authenticatedUser?.role === "admin";
+    const jobId = req.params.id;
 
-    const job = await Job.findOneAndDelete({
-      _id: req.params.id,
-      employer: employerId,
-    });
+    if (!isValidObjectId(jobId)) {
+      res.status(400).json({ message: "Invalid job ID" });
+      return;
+    }
+
+    const job = await Job.findOneAndDelete(
+      isAdmin ? { _id: jobId } : { _id: jobId, employer: employerId }
+    );
 
     if (!job) {
       res.status(404).json({ message: "Job not found or unauthorized" });
       return;
     }
 
+    await Application.deleteMany({ job: job._id });
+
     res.json({ message: "Job deleted successfully" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to delete job" });
   }
 }
 
 /**
  * PATCH /api/jobs/:id/toggle-status
- * Toggle job active/inactive status (Employer only)
+ * Toggle job active/inactive status (Owner employer or admin)
  */
 export async function toggleJobStatus(
   req: Request,
@@ -391,18 +388,23 @@ export async function toggleJobStatus(
 ): Promise<void> {
   try {
     const employerId = req.authenticatedUser?._id;
+    const isAdmin = req.authenticatedUser?.role === "admin";
+    const jobId = req.params.id;
 
-    const job = await Job.findOne({
-      _id: req.params.id,
-      employer: employerId,
-    });
+    if (!isValidObjectId(jobId)) {
+      res.status(400).json({ message: "Invalid job ID" });
+      return;
+    }
+
+    const job = await Job.findOne(
+      isAdmin ? { _id: jobId } : { _id: jobId, employer: employerId }
+    );
 
     if (!job) {
       res.status(404).json({ message: "Job not found or unauthorized" });
       return;
     }
 
-    // ✅ Toggle isActive và set closedAt
     job.isActive = !job.isActive;
 
     if (!job.isActive) {
@@ -417,7 +419,7 @@ export async function toggleJobStatus(
       message: `Job ${job.isActive ? "opened" : "closed"} successfully`,
       job,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to toggle job status" });
   }
 }
@@ -435,7 +437,7 @@ export async function getMyJobs(req: Request, res: Response): Promise<void> {
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch jobs" });
   }
 }
@@ -451,7 +453,7 @@ export async function generateDescription(
   try {
     const { title, skills, level } = z
       .object({
-        title: z.string().min(3),
+        title: z.string().trim().min(3),
         skills: z.array(z.string()).min(1),
         level: z.enum(["entry", "mid", "senior", "lead", "executive"]),
       })

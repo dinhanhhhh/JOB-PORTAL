@@ -8,6 +8,8 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import { setAuthCookies, clearAuthCookies } from "../utils/cookies.js";
+import { env } from "../utils/env.js";
+import { normalizeEmail } from "../utils/validation.js";
 
 // ===============================================
 // ZOD VALIDATION SCHEMAS
@@ -18,12 +20,12 @@ import { setAuthCookies, clearAuthCookies } from "../utils/cookies.js";
  * Password BẮT BUỘC (min 6 ký tự)
  */
 const registerSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: z.string().trim().email("Invalid email format"),
   password: z
     .string()
     .min(6, "Password must be at least 6 characters")
     .max(100, "Password too long"),
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
   role: z.enum(["seeker", "employer"]).optional().default("seeker"),
 });
 type RegisterDto = z.infer<typeof registerSchema>;
@@ -33,7 +35,7 @@ type RegisterDto = z.infer<typeof registerSchema>;
  * Password BẮT BUỘC
  */
 const loginSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: z.string().trim().email("Invalid email format"),
   password: z.string().min(1, "Password is required"),
 });
 type LoginDto = z.infer<typeof loginSchema>;
@@ -50,9 +52,10 @@ export async function register(req: Request, res: Response): Promise<void> {
   try {
     // Validate input với Zod
     const dto: RegisterDto = registerSchema.parse(req.body);
+    const email = normalizeEmail(dto.email);
 
     // Kiểm tra email đã tồn tại
-    const exists = await User.findOne({ email: dto.email });
+    const exists = await User.findOne({ email });
 
     if (exists) {
       // Kiểm tra nếu là OAuth user (không có password)
@@ -71,7 +74,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // Tạo user mới
     const user = await User.create({
-      email: dto.email,
+      email,
       password: dto.password,
       name: dto.name,
       role: dto.role ?? "seeker",
@@ -97,7 +100,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     if (error instanceof z.ZodError) {
       res.status(400).json({
         message: "Validation error",
-        errors: error,
+        errors: error.flatten(),
       });
       return;
     }
@@ -115,9 +118,10 @@ export async function login(req: Request, res: Response): Promise<void> {
   try {
     // Validate input
     const dto: LoginDto = loginSchema.parse(req.body);
+    const email = normalizeEmail(dto.email);
 
     // Tìm user theo email
-    const user = await User.findOne({ email: dto.email });
+    const user = await User.findOne({ email });
 
     if (!user) {
       res.status(401).json({ message: "Invalid credentials" });
@@ -165,7 +169,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     if (error instanceof z.ZodError) {
       res.status(400).json({
         message: "Validation error",
-        errors: error,
+        errors: error.flatten(),
       });
       return;
     }
@@ -221,6 +225,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
     const user = await User.findById(payload.sub);
 
     if (!user || !user.isActive) {
+      clearAuthCookies(res);
       res.status(401).json({ message: "Invalid user" });
       return;
     }
@@ -232,6 +237,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
 
     res.json({ ok: true });
   } catch (error) {
+    clearAuthCookies(res);
     console.error("Refresh token error:", error);
     res.status(401).json({ message: "Invalid refresh token" });
   }
@@ -255,13 +261,20 @@ export async function googleCallback(
   req: Request,
   res: Response
 ): Promise<void> {
+  const frontendUrl = env.FRONTEND_URL;
+
   try {
     // Passport đã set req.user sau khi authenticate
     const user = req.user as IUser | undefined;
 
     if (!user) {
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
       res.redirect(`${frontendUrl}/login?error=auth_failed`);
+      return;
+    }
+
+    if (!user.isActive) {
+      clearAuthCookies(res);
+      res.redirect(`${frontendUrl}/login?error=account_disabled`);
       return;
     }
 
@@ -272,7 +285,6 @@ export async function googleCallback(
 
     setAuthCookies(res, { access, refresh });
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     let redirectPath: string;
 
     switch (user.role) {
@@ -297,7 +309,6 @@ export async function googleCallback(
     res.redirect(`${frontendUrl}${redirectPath}`);
   } catch (error) {
     console.error("Google callback error:", error);
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     res.redirect(`${frontendUrl}/login?error=server_error`);
   }
 }

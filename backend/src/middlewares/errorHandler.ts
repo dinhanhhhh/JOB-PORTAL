@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError, type ZodIssue } from "zod";
 import { MongoServerError } from "mongodb";
+import { MulterError } from "multer";
 
 interface ErrorResponse {
   message: string;
@@ -69,13 +70,33 @@ export class ErrorHandler {
       return;
     }
 
+    // ====== Mongoose Invalid ObjectId (CastError) ======
+    if (err instanceof Error && err.name === "CastError") {
+      res.status(400).json({ message: "Invalid resource ID" });
+      return;
+    }
+
     // ====== Multer Upload Error ======
+    if (err instanceof MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        res.status(400).json({ message: "File size exceeds 5MB" });
+        return;
+      }
+      res.status(400).json({ message: err.message });
+      return;
+    }
+
     if (err instanceof Error && err.message.includes("File too large")) {
       res.status(400).json({ message: "File size exceeds 5MB" });
       return;
     }
 
-    if (err instanceof Error && err.message.includes("files are allowed")) {
+    if (
+      err instanceof Error &&
+      (err.message.includes("File type not allowed") ||
+        err.message.includes("Upload not allowed") ||
+        err.message.includes("files are allowed"))
+    ) {
       res.status(400).json({ message: err.message });
       return;
     }

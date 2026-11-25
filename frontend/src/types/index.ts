@@ -98,9 +98,21 @@ export interface SeekerProfileResponse {
 }
 
 export interface UpdateSeekerProfileRequest {
+  phone?: string;
+  location?: string;
   bio?: string;
   skills?: string[];
+  experience?: string;
+  education?: string;
+  github?: string;
+  portfolio?: string;
+  linkedin?: string;
 }
+
+export type UpsertCompanyRequest = Pick<
+  Company,
+  "name" | "description" | "website" | "location" | "industry" | "size"
+>;
 
 export interface UpdateSeekerProfileResponse {
   profile: SeekerProfile;

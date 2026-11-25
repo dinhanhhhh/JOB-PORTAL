@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import {
   getSeekerProfile,
+  streamMyResume,
   updateSeekerProfile,
   uploadAvatar,
   uploadResume,
@@ -15,6 +16,7 @@ router.use(requireAuth, requireRole(["seeker"]));
 router.get("/seeker", getSeekerProfile);
 router.put("/seeker", updateSeekerProfile);
 router.post("/seeker/avatar", uploadImage, uploadAvatar);
+router.get("/seeker/resume", streamMyResume);
 router.post("/seeker/resume", uploadPDF, uploadResume);
 
 export default router;

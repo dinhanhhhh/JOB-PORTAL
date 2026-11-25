@@ -1,92 +1,85 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { translations } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 
 export default function CTABanner() {
   const { user, loading } = useAuth();
   const { language } = useLanguage();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isTriggered, setIsTriggered] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
-  const [hasLoggedInUser, setHasLoggedInUser] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Set hasLoggedInUser on mount/load if user is already present
-  useEffect(() => {
-    if (!loading && user) {
-      setHasLoggedInUser(true);
-    }
-  }, [user, loading]);
-
-  // Handle auto-close animation when user logs in/registers successfully
-  useEffect(() => {
-    if (user && !loading) {
-      setIsVisible(false);
-      const timer = setTimeout(() => {
-        setIsDismissed(true);
-      }, 500); // Wait for transition-all duration-500 to finish
-      return () => clearTimeout(timer);
-    }
-  }, [user, loading]);
+  const isVisible = !loading && !user && !isDismissed && isTriggered;
 
   useEffect(() => {
-    // Check if user is logged in or if banner was dismissed in this session
-    if (loading || user || hasLoggedInUser) {
-      setIsVisible(false);
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loading || user || isDismissed) {
       return;
     }
 
-    const dismissed = sessionStorage.getItem("cta-dismissed") === "true";
-    if (dismissed) {
-      setIsDismissed(true);
-      return;
-    }
-
-    // 1. Show banner when user scrolls down past 300px
     const handleScroll = () => {
-      if (window.scrollY > 300 && !isDismissed) {
-        setIsVisible(true);
+      if (sessionStorage.getItem("cta-dismissed") === "true") {
+        return;
+      }
+      if (window.scrollY > 300) {
+        setIsTriggered(true);
       }
     };
 
-    // 2. Show banner on custom click event
     const handleShowCTA = () => {
-      if (!isDismissed) {
-        setIsVisible(true);
+      if (sessionStorage.getItem("cta-dismissed") === "true") {
+        return;
       }
+      setIsTriggered(true);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("show-cta-banner", handleShowCTA);
 
-    // Initial check in case they are already scrolled
-    handleScroll();
+    const rafId = window.requestAnimationFrame(() => {
+      handleScroll();
+    });
 
     return () => {
+      window.cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("show-cta-banner", handleShowCTA);
     };
-  }, [user, loading, isDismissed, hasLoggedInUser]);
+  }, [user, loading, isDismissed]);
 
   const handleDismiss = () => {
-    setIsVisible(false);
+    setIsTriggered(false);
     sessionStorage.setItem("cta-dismissed", "true");
-    setTimeout(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+    }
+    dismissTimerRef.current = setTimeout(() => {
       setIsDismissed(true);
-    }, 500); // Wait for transition-all duration-500 to finish
+      dismissTimerRef.current = null;
+    }, 500);
   };
 
-  // Do not render anything if user is logged in, loading, or has dismissed the banner
-  if (loading || hasLoggedInUser || (isDismissed && !isVisible)) {
+  if (loading || user || isDismissed) {
     return null;
   }
 
   const isVi = language === "vi";
-  const titleText = isVi ? "Khám phá nhiều cơ hội hơn!" : "Discover more opportunities!";
+  const titleText = isVi
+    ? "Khám phá nhiều cơ hội hơn!"
+    : "Discover more opportunities!";
   const descriptionText = isVi
     ? "Đăng ký tài khoản ngay để ứng tuyển nhanh chóng và nhận gợi ý việc làm phù hợp."
     : "Register an account now to apply quickly and receive tailored job recommendations.";
@@ -96,7 +89,7 @@ export default function CTABanner() {
   return (
     <div
       className={cn(
-        "fixed bottom-4 right-4 left-4 md:left-auto z-50 max-w-sm",
+        "fixed bottom-4 right-4 left-4 md:left-auto z-50 max-w-sm max-w-[calc(100vw-2rem)]",
         "transition-all duration-500 ease-out transform",
         isVisible
           ? "translate-y-0 opacity-100 scale-100"
@@ -104,12 +97,12 @@ export default function CTABanner() {
       )}
     >
       <div className="interactive-panel p-5 shadow-2xl border border-border/60 rounded-2xl bg-card/90 backdrop-blur-md">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <h4 className="font-semibold text-base text-foreground md:text-lg">
             {titleText}
           </h4>
           <button
+            type="button"
             onClick={handleDismiss}
             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-secondary"
             aria-label="Close"
@@ -118,12 +111,10 @@ export default function CTABanner() {
           </button>
         </div>
 
-        {/* Description */}
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
           {descriptionText}
         </p>
 
-        {/* CTA Buttons */}
         <div className="mt-4 flex items-center justify-end gap-3">
           <Link
             href="/login"

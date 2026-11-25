@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 import CTABanner from "@/components/layout/CTABanner";
 
 export const metadata: Metadata = {
@@ -38,11 +39,13 @@ export default function RootLayout({
       <body>
         <LanguageProvider>
           <ThemeProvider>
-            <AuthProvider>
-              <Navbar />
-              <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-              <CTABanner />
-            </AuthProvider>
+            <ToastProvider>
+              <AuthProvider>
+                <Navbar />
+                <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+                <CTABanner />
+              </AuthProvider>
+            </ToastProvider>
           </ThemeProvider>
         </LanguageProvider>
       </body>

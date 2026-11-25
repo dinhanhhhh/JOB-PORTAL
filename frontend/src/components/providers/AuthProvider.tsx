@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { User } from "@/types";
 import {
   me,
@@ -12,14 +19,15 @@ import {
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (
     name: string,
     email: string,
     password: string,
     role?: "seeker" | "employer"
-  ) => Promise<void>;
+  ) => Promise<User>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   setUser: (u: User | null) => void;
 }
 
@@ -29,93 +37,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    // Load cached user on mount (client-side only)
-    const cached = localStorage.getItem("auth_user");
-    if (cached) {
-      try {
-        const cachedUser = JSON.parse(cached);
-        setUser(cachedUser);
-        setLoading(false);
-      } catch (e) {
+  const syncUserFromServer = useCallback(async (activeCheck?: () => boolean) => {
+    try {
+      const currentUser = await me();
+      if (activeCheck && !activeCheck()) return;
+      setUser(currentUser);
+      if (currentUser) {
+        localStorage.setItem("auth_user", JSON.stringify(currentUser));
+      } else {
         localStorage.removeItem("auth_user");
       }
+    } catch {
+      if (activeCheck && !activeCheck()) return;
+      setUser(null);
+      localStorage.removeItem("auth_user");
+    } finally {
+      if (!activeCheck || activeCheck()) {
+        setLoading(false);
+      }
     }
+  }, []);
 
-    me()
-      .then((u) => {
-        if (isMounted) {
-          setUser(u);
-          if (u) {
-            localStorage.setItem("auth_user", JSON.stringify(u));
-          } else {
-            localStorage.removeItem("auth_user");
-          }
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setUser(null);
-          localStorage.removeItem("auth_user");
-        }
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
+  useEffect(() => {
+    let isMounted = true;
+    void syncUserFromServer(() => isMounted);
     return () => {
       isMounted = false;
     };
+  }, [syncUserFromServer]);
+
+  const refreshUser = useCallback(async () => {
+    await syncUserFromServer();
+  }, [syncUserFromServer]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const u = await apiLogin({ email, password });
+    setUser(u);
+    localStorage.setItem("auth_user", JSON.stringify(u));
+    return u;
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const u = await apiLogin({ email, password });
-      setUser(u);
-      localStorage.setItem("auth_user", JSON.stringify(u));
-    } catch (error) {
-      console.error("Login failed", error);
-      throw error;
-    }
-  };
-
-  const register = async (
-    name: string,
-    email: string,
-    password: string,
-    role: "seeker" | "employer" = "seeker"
-  ) => {
-    try {
+  const register = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      role: "seeker" | "employer" = "seeker"
+    ) => {
       const u = await apiRegister({ name, email, password, role });
       setUser(u);
       localStorage.setItem("auth_user", JSON.stringify(u));
-    } catch (error) {
-      console.error("Register failed", error);
-      throw error;
-    }
-  };
+      return u;
+    },
+    []
+  );
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await apiLogout();
+    } finally {
       setUser(null);
-      localStorage.removeItem("auth_user");
-    } catch (error) {
-      console.error("Logout failed", error);
-      throw error;
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_user");
+      }
     }
-  };
+  }, []);
 
-  const value: AuthContextValue = {
-    user,
-    loading,
-    login,
-    register,
-    logout,
-    setUser,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      refreshUser,
+      setUser,
+    }),
+    [user, loading, login, register, logout, refreshUser]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

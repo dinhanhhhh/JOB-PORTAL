@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import CustomButton from "@/components/ui/CustomButton";
@@ -11,27 +12,50 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useToast } from "@/components/providers/ToastProvider";
 import { translations } from "@/lib/translations";
 import { useRouter } from "next/navigation";
-import { getApiBaseApi } from "@/lib/api";
+import { getApiBaseApi, getDisplayErrorMessage } from "@/lib/api";
 import Link from "next/link";
 
 const RoleEnum = z.enum(["seeker", "employer"]);
 
-const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  role: RoleEnum,
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: "seeker" | "employer";
+};
 
 export default function RegisterPage() {
-  const { register: registerUser, user } = useAuth();
+  const { register: registerUser, user, loading } = useAuth();
   const { language } = useLanguage();
+  const { toast } = useToast();
   const t = translations[language].auth;
+  const tc = translations[language].common;
   const router = useRouter();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          name: z.string().trim().min(2, "Name must be at least 2 characters"),
+          email: z.string().trim().email("Invalid email"),
+          password: z.string().min(6, "Password must be at least 6 characters"),
+          confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+          role: RoleEnum,
+        })
+        .refine((values) => values.password === values.confirmPassword, {
+          message: t.passwordMismatch,
+          path: ["confirmPassword"],
+        }),
+    [t.passwordMismatch]
+  );
 
   const {
     register,
@@ -45,42 +69,129 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    if (user) router.push("/");
-  }, [user, router]);
+    if (!loading && user) {
+      router.replace(user.role === "employer" ? "/company" : "/");
+    }
+  }, [user, loading, router]);
 
   const onSubmit = async (values: FormValues) => {
-    await registerUser(values.name, values.email, values.password, values.role);
-    router.push("/");
+    setFormError(null);
+    try {
+      const createdUser = await registerUser(
+        values.name,
+        values.email,
+        values.password,
+        values.role
+      );
+      toast.success(t.registerSuccess);
+      router.replace(createdUser.role === "employer" ? "/company" : "/");
+    } catch (error) {
+      const msg = getDisplayErrorMessage(error, tc.error);
+      setFormError(msg);
+      toast.error(msg);
+    }
   };
 
   const roleValue = useWatch({ control, name: "role" });
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background text-foreground px-4 py-10">
-      <Card className="w-full max-w-md space-y-6 rounded-2xl border p-8 shadow-lg backdrop-blur">
+      <Card className="w-full max-w-md space-y-6 rounded-2xl border p-6 sm:p-8 shadow-lg backdrop-blur">
         <div className="text-center space-y-2">
           <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
             <span className="text-xl">~</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t.registerTitle}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t.registerTitle}
+          </h1>
           <p className="text-sm text-muted-foreground">{t.registerSubtitle}</p>
         </div>
+
+        {formError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{formError}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">{t.name}</Label>
             <Input id="name" placeholder={t.name} {...register("name")} />
-            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">{t.email}</Label>
-            <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">{t.password}</Label>
-            <Input id="password" type="password" {...register("password")} />
-            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                className="pr-10"
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? t.hidePassword : t.showPassword}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                className="pr-10"
+                {...register("confirmPassword")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                aria-label={showConfirmPassword ? t.hidePassword : t.showPassword}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="text-sm text-destructive">
+                {errors.confirmPassword.message}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">{t.role}</Label>
@@ -89,17 +200,20 @@ export default function RegisterPage() {
               className="h-9 w-full rounded-md border border-border/40 bg-background/70 px-3 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
               {...register("role")}
             >
-              <option className="bg-slate-900" value="seeker">
+              <option className="bg-background text-foreground" value="seeker">
                 {t.seeker}
               </option>
-              <option className="bg-slate-900" value="employer">
+              <option className="bg-background text-foreground" value="employer">
                 {t.employer}
               </option>
             </select>
             <p className="text-xs text-muted-foreground">
-              {t.selectedRole}: <b>{roleValue === "seeker" ? t.seeker : t.employer}</b>
+              {t.selectedRole}:{" "}
+              <b>{roleValue === "seeker" ? t.seeker : t.employer}</b>
             </p>
-            {errors.role && <p className="text-sm text-destructive">{errors.role.message}</p>}
+            {errors.role && (
+              <p className="text-sm text-destructive">{errors.role.message}</p>
+            )}
           </div>
 
           <CustomButton
@@ -116,7 +230,9 @@ export default function RegisterPage() {
               <span className="w-full border-t border-border/60" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">{t.orContinueWith}</span>
+              <span className="bg-card px-2 text-muted-foreground">
+                {t.orContinueWith}
+              </span>
             </div>
           </div>
 
@@ -159,4 +275,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

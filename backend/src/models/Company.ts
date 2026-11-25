@@ -6,6 +6,9 @@ export interface ICompany extends Document {
   description?: string;
   website?: string;
   logoUrl?: string;
+  location?: string;
+  industry?: string;
+  size?: string;
   owner: mongoose.Types.ObjectId; // employer user
 }
 
@@ -15,6 +18,9 @@ const companySchema = new Schema<ICompany>(
     description: String,
     website: String,
     logoUrl: String,
+    location: String,
+    industry: String,
+    size: String,
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

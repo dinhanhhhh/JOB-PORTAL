@@ -9,11 +9,12 @@ import {
   googleCallback,
 } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middlewares/auth.js";
+import { authRateLimit } from "../middlewares/rateLimit.js";
 
 const router = Router();
 
-router.post("/register", register);
-router.post("/login", login);
+router.post("/register", authRateLimit, register);
+router.post("/login", authRateLimit, login);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/me", requireAuth, me);
